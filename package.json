@@ -20,7 +20,10 @@
   },
   "devDependencies": {
     "css-loader": "^6.7.4",
+    "d3-contour": "^4.0.2",
     "html-webpack-plugin": "^5.5.1",
+    "json5": "^2.2.3",
+    "json5-loader": "^4.0.1",
     "style-loader": "^3.3.3",
     "webpack": "^5.83.1",
     "webpack-cli": "^5.1.1",

@@ -42,7 +42,12 @@ module.exports = [
         {
           test: /\.worker\.js$/,
           use: { loader: 'worker-loader' }
-        }
+        },
+        {
+          test: /\.json5$/i,
+          loader: 'json5-loader',
+          type: 'javascript/auto',
+        },
       ],
     },
   },

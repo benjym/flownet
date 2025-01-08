@@ -1,34 +1,19 @@
 import css from './main.css';
+import json5_file from './data/test.json5';
+import JSON5 from 'json5';
 import Konva from 'konva';
 import Worker from './sorWorker.worker.js';
+import { plotPotential, plotPotentialWithContours, plotFlownetWithContours } from './plotter';
 
 let taskId = 0; // Unique task ID for each worker request
 const width = 800;
 const height = 600;
 
-// let points = [
-//     { x: 100, y: 100, BC: 50 },
-//     { x: 700, y: 100 },
-//     { x: 700, y: height / 2.0 },
-//     { x: width, y: height / 2.0 },
-//     { x: width, y: height },
-//     { x: 0, y: height, BC:100 },
-//     { x: 0, y: height / 2.0 },
-//     { x: 100, y: height / 2.0 },
-// ];
+// Initial points for the domain
 
-let points = [
-    {x:0, y: 0, BC: 100},
-    {x:width, y: 0, BC:200},
-    {x:width, y: height/2.},
-    {x:width, y: height},
-    {x:0, y: height}
-]
-
-let head = {
-    left: 120,
-    right: 200
-};
+let data = JSON5.parse(JSON.stringify(json5_file));
+let points = data.points;
+let head = data.head;
 
 // Configuration for SOR
 const worker = new Worker();
@@ -37,13 +22,13 @@ const config = {
     width: width,
     height: height,
     head: head,
-    gridSize: 10,
+    gridSize: data.gridSize,
     tolerance: 1e-6,
     omega: 1.8,
     k: 1,
 };
 
-function sendTask(data){
+function sendTask(data) {
     taskId++;
     data.taskId = taskId;
     worker.postMessage(data);
@@ -51,7 +36,9 @@ function sendTask(data){
 
 // Handle results from the worker
 worker.onmessage = function (e) {
-    plotPotential(e.data.potential, layer2);
+    // plotPotential(e.data.potential, layer2, width, height);
+    // plotPotentialWithContours(e.data.potential, layer2, width, height, data.contourValues);
+    plotFlownetWithContours(e.data.potential, layer2, width, height, data.contourValues, data.contourValues);
 };
 
 const stage = new Konva.Stage({
@@ -75,7 +62,7 @@ function drawPolygon() {
 
     if (points.length > 1) {
         polygon = new Konva.Line({
-            points: points.flatMap(p => [p.x, p.y]),
+            points: points.flatMap(p => [p.x * width, p.y * height]),
             stroke: 'brown',
             strokeWidth: 2,
             closed: true,
@@ -122,7 +109,7 @@ function drawHeadLevelLines() {
     });
 
     leftLine.on('dragmove', () => {
-        head.left = leftLine.points()[1];
+        head.left = leftLine.points()[1] / height;
         drawHeadLevelLines();
     });
 
@@ -139,7 +126,7 @@ function drawHeadLevelLines() {
     });
 
     rightLine.on('dragmove', () => {
-        head.right = rightLine.points()[1];
+        head.right = rightLine.points()[1] / height;
         drawHeadLevelLines();
     });
 
@@ -155,15 +142,15 @@ function makePointsDraggable() {
 
     points.forEach((point, index) => {
         const circle = new Konva.Circle({
-            x: point.x,
-            y: point.y,
+            x: point.x * width,
+            y: point.y * height,
             radius: 5,
             fill: 'white',
             draggable: true,
         });
 
         circle.on('dragmove', () => {
-            points[index] = { x: circle.x(), y: circle.y() };
+            points[index] = { x: circle.x() / width, y: circle.y() / height };
             drawPolygon();
         });
 
@@ -179,50 +166,7 @@ function makePointsDraggable() {
     sendTask(config);
 }
 
-function plotPotential(potential, layer) {
-    const ny = potential.length;
-    const nx = potential[0].length;
 
-    const minX = Math.min(...points.map(p => p.x));
-    const minY = Math.min(...points.map(p => p.y));
-    const maxX = Math.max(...points.map(p => p.x));
-    const maxY = Math.max(...points.map(p => p.y));
-    console.log(minX,maxX)
-
-    const cellWidth = (maxX - minX)/ nx;
-    const cellHeight = (maxY - minY) / ny;
-
-    const minPotential = Math.min(...potential.flat());
-    // const minPotential = 10;
-    const maxPotential = Math.max(...potential.flat());
-
-    function potentialToColor(value) {
-        const normalized = (value - minPotential) / (maxPotential - minPotential);
-        const red = Math.round(normalized * 255);
-        const blue = 255 - red;
-        return `rgb(${red}, 0, ${blue})`;
-    }
-
-    layer.destroyChildren();
-
-    for (let j = 0; j < ny; j++) {
-        for (let i = 0; i < nx; i++) {
-            const color = potentialToColor(potential[j][i]);
-
-            const rect = new Konva.Rect({
-                x: minX + i * cellWidth,
-                y: minY + j * cellHeight,
-                width: cellWidth,
-                height: cellHeight,
-                fill: color,
-            });
-
-            layer.add(rect);
-        }
-    }
-
-    layer.draw();
-}
 
 // Initialize
 drawPolygon();
