@@ -1,0 +1,30 @@
+{
+  "name": "constitutive-models",
+  "version": "1.0.0",
+  "description": "GUI to help users observe behaviour of constitutive models",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack build",
+    "start": "webpack serve --open"
+  },
+  "keywords": [
+    "Constitutive models",
+    "Geomechanics",
+    "Granular materials"
+  ],
+  "author": "Benjy Marks",
+  "license": "ISC",
+  "dependencies": {
+    "konva": "^9.3.0"
+  },
+  "devDependencies": {
+    "css-loader": "^6.7.4",
+    "html-webpack-plugin": "^5.5.1",
+    "style-loader": "^3.3.3",
+    "webpack": "^5.83.1",
+    "webpack-cli": "^5.1.1",
+    "webpack-dev-server": "^4.15.0",
+    "worker-loader": "^3.0.8"
+  }
+}
