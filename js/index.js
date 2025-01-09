@@ -1,9 +1,9 @@
-import css from './main.css';
-import json5_file from './data/test.json5';
+import css from '../css/main.css';
+import json5_file from '../data/test.json5';
 import JSON5 from 'json5';
 import Konva from 'konva';
 import Worker from './sorWorker.worker.js';
-import { plotPotential, plotPotentialWithContours, plotFlownetWithContours } from './plotter';
+import { plotFlownetWithContours } from './plotter.js';
 
 let taskId = 0; // Unique task ID for each worker request
 const width = 800;
@@ -38,7 +38,7 @@ function sendTask(data) {
 worker.onmessage = function (e) {
     // plotPotential(e.data.potential, layer2, width, height);
     // plotPotentialWithContours(e.data.potential, layer2, width, height, data.contourValues);
-    plotFlownetWithContours(e.data.potential, layer2, width, height, data.contourValues, data.contourValues);
+    plotFlownetWithContours(e.data.potential, e.data.streamfunction, layer2, width, height, data.contourValues, data.contourValues);
 };
 
 const stage = new Konva.Stage({
