@@ -1,4 +1,5 @@
 import css from '../css/main.css';
+// import json5_file from '../data/test.json5';
 import json5_file from '../data/dam.json5';
 import JSON5 from 'json5';
 import Konva from 'konva';
@@ -14,6 +15,7 @@ const height = 600;
 let data = JSON5.parse(JSON.stringify(json5_file));
 let points = data.points;
 let head = data.head;
+let solid = data.solid;
 
 // Configuration for SOR
 const worker = new Worker();
@@ -53,6 +55,7 @@ stage.add(layer2);
 stage.add(layer);
 
 let polygon = null;
+let solid_line = null;
 
 // Function to draw the domain
 function drawPolygon() {
@@ -69,7 +72,7 @@ function drawPolygon() {
             const line = new Konva.Line({
                 points: [p1.x * width, p1.y * height, p2.x * width, p2.y * height],
                 stroke: colour,
-                strokeWidth: 2,
+                strokeWidth: 8,
             });
             polygon.add(line);
         }
@@ -82,6 +85,21 @@ function drawPolygon() {
         // });
 
         layer.add(polygon);
+    }
+
+    if (solid_line) {
+        solid_line.destroy();
+    }
+
+    if (solid.length > 1) {
+        console.log(solid)
+        solid_line = new Konva.Line({
+            points: solid.flatMap(p => [p.x * width, p.y * height]),
+            fill: 'gray',
+            closed: true,
+        });
+
+        layer.add(solid_line);
     }
     drawHeadLevelLines();
     layer.draw();
@@ -184,4 +202,4 @@ function makePointsDraggable() {
 
 // Initialize
 drawPolygon();
-makePointsDraggable();
+// makePointsDraggable();

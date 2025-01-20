@@ -31,8 +31,8 @@ function plotFlownetWithContours(potential, streamfunction, layer, width, height
     // let streamfunctionContourValues = contourValues.map(value => (value - minStreamfunction) / (maxStreamfunction - minStreamfunction));
     // console.log(streamfunctionContourValues)
 
-    // drawHeatmap(potential, flatPotential, layer, nx, ny, cellWidth, cellHeight);
-    drawHeatmap(streamfunction, flatStreamfunction, layer, nx, ny, cellWidth, cellHeight);
+    drawHeatmap(potential, flatPotential, layer, nx, ny, cellWidth, cellHeight);
+    // drawHeatmap(streamfunction, flatStreamfunction, layer, nx, ny, cellWidth, cellHeight);
 
     drawContours(flatPotential, layer, nx, ny, cellWidth, cellHeight, contourValues, 'white')
 
@@ -46,17 +46,21 @@ function drawHeatmap(potential, flatPotential, layer, nx, ny, cellWidth, cellHei
     const minPotential = Math.min(...flatPotential);
     const maxPotential = Math.max(...flatPotential);
     // Draw heatmap
+    let color;
     for (let j = 0; j < ny; j++) {
         for (let i = 0; i < nx; i++) {
+            
             if (potential[j][i] === null) {
-                const color = 'black';
-                console.log('GOT NULL')
+                color = 'rgb(0, 0, 0)';
+                // console.log('GOT NULL')
             }
-            const color = `rgb(
+            else {
+            color = `rgb(
                 ${Math.round(255 * (potential[j][i] - minPotential) / (maxPotential - minPotential))},
                 0,
                 ${Math.round(255 * (1 - (potential[j][i] - minPotential) / (maxPotential - minPotential)))}
             )`;
+            }
 
             const rect = new Konva.Rect({
                 x: i * cellWidth,
