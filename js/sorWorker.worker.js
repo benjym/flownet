@@ -17,26 +17,50 @@ self.onmessage = function (event) {
     function findNearestBC(points, type, startIndex, direction) {
         let index = startIndex;
         if (index < 0) index = points.length - 1;
-        if (index >= points.length - 1) index = 0;
+        if (index > points.length - 1) index = 0;
 
         for (let i = 0; i < points.length-1; i++) {
             const point = points[index];
-            // console.log(point.BC.value, index, direction, point.BC.type === type); 
             if (point.BC.type === type) {
                 return { index, BC: point.BC.value };
             }
             index += direction;
             if (index < 0) index = points.length - 1;
-            if (index >= points.length - 1) index = 0;
+            if (index > points.length - 1) index = 0;
         
         }
+        console.error("Did not find a Nearest BC for type: ", type, "startIndex: ", startIndex, "direction: ", direction);
         // return null; // No numerical BC found in this direction
     }
+
+    // function isPointInPolygon(x, y, points) {
+    //     let inside = false;
+    //     for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    //         const xi = points[i].x * (gridSize - 1);
+    //         const yi = points[i].y * (gridSize - 1);
+    //         const xj = points[j].x * (gridSize - 1);
+    //         const yj = points[j].y * (gridSize - 1);
+    
+    //         const intersect = ((yi > y) !== (yj > y)) &&
+    //             (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    //         if (intersect) {
+    //             inside = !inside;
+    //         }
+    //     }
+    //     return inside;
+    // }
+    
 
     // Initialize the domain: mark all points
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-            potential[row][col] = 0; // Default initialization
+            // if (!isPointInPolygon(row, col, points)) {
+                // potential[row][col] = null; // Mark as outside the polygon
+                // console.log('OUTSIDE')
+            // } else {
+                // console.log('INSIDE')
+                potential[row][col] = 0; // Default initialization inside the polygon
+            // }
         }
     }
 
@@ -57,9 +81,9 @@ self.onmessage = function (event) {
         if (point.BC.type === "EP") {
             const nearestBackward = findNearestBC(points, "FL", i-1, -1); // BC before the boundary
             const nearestForward = findNearestBC(points, "FL", i + 1, 1); // BC after the boundary
-            // const startBC = nearestBackward.BC;
-            // const endBC = nearestForward.BC;
-            console.log(nearestBackward, nearestForward)//, startBC, endBC)
+            const startBC = nearestBackward.BC;
+            const endBC = nearestForward.BC;
+            // console.log(nearestBackward, nearestForward)//, startBC, endBC)
             for (let step = 0; step <= steps; step++) {
                 const col = Math.round(x * (gridSize - 1));
                 const row = Math.round(y * (gridSize - 1));
@@ -67,8 +91,8 @@ self.onmessage = function (event) {
                 potential[row][col] = point.BC.value; // Fixed EP value
                 isEP[row][col] = true;
 
-                // const t = step / steps; // Linear interpolation factor
-                // streamfunction[row][col] = (1 - t) * startBC + t * endBC;
+                const t = step / steps; // Linear interpolation factor
+                streamfunction[row][col] = (1 - t) * startBC + t * endBC;
     
                 x += xIncrement;
                 y += yIncrement;
@@ -154,3 +178,5 @@ self.onmessage = function (event) {
         self.postMessage({ potential, streamfunction });
     }
 };
+
+

@@ -20,7 +20,8 @@ function plotFlownetWithContours(potential, streamfunction, layer, width, height
     const flatStreamfunction = streamfunction.flat();
     const minStreamfunction = Math.min(...flatStreamfunction);
     const maxStreamfunction = Math.max(...flatStreamfunction);
-    console.log(minStreamfunction, maxStreamfunction)
+    // console.log('HI!')
+    // console.log(minStreamfunction, maxStreamfunction)
     // Clear the layer
     layer.destroyChildren();
 
@@ -47,6 +48,10 @@ function drawHeatmap(potential, flatPotential, layer, nx, ny, cellWidth, cellHei
     // Draw heatmap
     for (let j = 0; j < ny; j++) {
         for (let i = 0; i < nx; i++) {
+            if (potential[j][i] === null) {
+                const color = 'black';
+                console.log('GOT NULL')
+            }
             const color = `rgb(
                 ${Math.round(255 * (potential[j][i] - minPotential) / (maxPotential - minPotential))},
                 0,

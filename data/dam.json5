@@ -1,14 +1,14 @@
 {
     gridSize : 50,
     points : [
-        { x: 0.1, y: 0.1, BC: 1 },
-        { x: 0.9, y: 0.1, BC:'FL'},
-        { x: 0.9, y: 0.5, BC:'FL' },
-        { x: 1, y: 0.5, BC:'FL' },
-        { x: 1, y: 1, BC:'FL' },
-        { x: 0, y: 1, BC: 2 },
-        { x: 0, y: 0.5, BC:'FL' },
-        { x: 0.1, y: 0.5, BC:'FL' },
+        { x: 0, y: 0.5, BC: {type:'EP', value:1} },
+        { x: 0.3, y: 0.5, BC: {type:'FL', value:1}},
+        { x: 0.3, y: 0.6, BC:{type:'FL', value:0.8} },
+        { x: 0.7, y: 0.6, BC:{type:'FL', value:0.6} },
+        { x: 0.7, y: 0.5, BC:{type:'EP', value:0} },
+        { x: 1.0, y: 0.5, BC: {type:'FL', value:1} },
+        { x: 1.0, y: 1.0, BC:{type:'FL', value:0.5} },
+        { x: 0.0, y: 1.0, BC:{type:'FL', value:0} },
     ],
     head : {
         left: 0.2,

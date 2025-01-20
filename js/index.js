@@ -1,5 +1,5 @@
 import css from '../css/main.css';
-import json5_file from '../data/test.json5';
+import json5_file from '../data/dam.json5';
 import JSON5 from 'json5';
 import Konva from 'konva';
 import Worker from './sorWorker.worker.js';
@@ -61,12 +61,25 @@ function drawPolygon() {
     }
 
     if (points.length > 1) {
-        polygon = new Konva.Line({
-            points: points.flatMap(p => [p.x * width, p.y * height]),
-            stroke: 'brown',
-            strokeWidth: 2,
-            closed: true,
-        });
+        polygon = new Konva.Group();
+        for (let i = 0; i < points.length; i++) {
+            const p1 = points[i];
+            let colour = p1.BC.type === 'FL' ? 'red' : 'white';
+            const p2 = points[(i + 1) % points.length];
+            const line = new Konva.Line({
+                points: [p1.x * width, p1.y * height, p2.x * width, p2.y * height],
+                stroke: colour,
+                strokeWidth: 2,
+            });
+            polygon.add(line);
+        }
+        // polygon = new Konva.Line({
+        //     points: points.flatMap(p => [p.x * width, p.y * height]),
+        //     // stroke: 'brown',
+        //     stroke: colours,
+        //     strokeWidth: 2,
+        //     closed: true,
+        // });
 
         layer.add(polygon);
     }
@@ -150,7 +163,8 @@ function makePointsDraggable() {
         });
 
         circle.on('dragmove', () => {
-            points[index] = { x: circle.x() / width, y: circle.y() / height };
+            points[index].x = circle.x() / width;
+            points[index].y = circle.y() / height;
             drawPolygon();
         });
 
