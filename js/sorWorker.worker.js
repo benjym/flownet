@@ -1,5 +1,5 @@
 self.onmessage = function (event) {
-    const { taskId, points, gridSize, tolerance, omega } = event.data;
+    const { taskId, points, gridSize, tolerance, omega, maxIterations } = event.data;
 
     let currentTaskId = 0;
     currentTaskId++;
@@ -8,47 +8,15 @@ self.onmessage = function (event) {
 
     const cols = gridSize;
     const rows = gridSize;
+
+    // Grid spacing for numerical derivatives
+    const dx = 1 / (cols - 1);
+    const dy = 1 / (rows - 1);
+
     let potential = Array.from({ length: rows }, () => Array(cols).fill(0));
     let streamfunction = Array.from({ length: rows }, () => Array(cols).fill(0));
     let isFL = Array.from({ length: rows }, () => Array(cols).fill(false));
     let isEP = Array.from({ length: rows }, () => Array(cols).fill(false));
-
-    function incrementIndex(index, direction, points) {
-        index += direction;
-            
-        if (index < 0) index = points.length - 1;
-        if (index > points.length - 1) index = 0;
-
-        return index;
-    }
-    
-    function length(p1, p2) {
-        Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
-    }
-
-    // Helper function to find the first numerical BC going backwards or forwards
-    function findNearestBC(points, type, startIndex, direction) {
-        let prev_index = startIndex;
-        let index = incrementIndex(prev_index, direction, points);
-
-        let path_length = 0;
-
-        for (let i = 0; i < points.length - 1; i++) {
-            const point = points[index];
-            const prev_point = points[prev_index];
-            path_length += length(prev_point, point);
-            
-            if (point.BC.type === type) {
-                return { index, BC: point.BC.value, length : path_length };
-            }
-            
-            prev_index = index;
-            index = incrementIndex(index, direction, points);
-
-        }
-        console.error("Did not find a Nearest BC for type: ", type, "startIndex: ", startIndex, "direction: ", direction);
-        // return null; // No numerical BC found in this direction
-    }
 
     function isPointInPolygon(y, x, points) {
         let inside = false;
@@ -67,146 +35,314 @@ self.onmessage = function (event) {
         return inside;
     }
 
+    // Find min and max potential values from EP boundaries for better initialization
+    let minPotential = Infinity;
+    let maxPotential = -Infinity;
+    points.forEach(point => {
+        if (point.BC.type === "EP" && point.BC.value !== undefined) {
+            minPotential = Math.min(minPotential, point.BC.value);
+            maxPotential = Math.max(maxPotential, point.BC.value);
+        }
+    });
+
+    // If no EP boundaries found, use default range
+    if (minPotential === Infinity) {
+        minPotential = 0;
+        maxPotential = 1;
+    }
+
+    // Initialize with average of boundary values for better convergence
+    const avgPotential = (minPotential + maxPotential) / 2;
 
     // Initialize the domain: mark all points
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
             if (!isPointInPolygon(row, col, points)) {
-            potential[row][col] = null; // Mark as outside the polygon
-            // console.log('OUTSIDE')
+                potential[row][col] = null; // Mark as outside the polygon
             } else {
-            // console.log('INSIDE')
-                potential[row][col] = 0; // Default initialization inside the polygon
+                potential[row][col] = avgPotential; // Initialize with average of boundary values
             }
         }
     }
-
     // Handle boundary conditions
     points.forEach((point, i) => {
         const nextPoint = points[(i + 1) % points.length]; // Wrap back to the first point
-        const dx = nextPoint.x - point.x;
-        const dy = nextPoint.y - point.y;
-        const steps = Math.max(Math.abs(dx), Math.abs(dy)) * (gridSize - 1);
+        const deltaX = nextPoint.x - point.x;
+        const deltaY = nextPoint.y - point.y;
+        const steps = Math.max(Math.abs(deltaX), Math.abs(deltaY)) * (gridSize - 1);
 
-        const xIncrement = dx / steps;
-        const yIncrement = dy / steps;
+        const xIncrement = deltaX / steps;
+        const yIncrement = deltaY / steps;
 
         let x = point.x;
         let y = point.y;
 
-        // Handle EP (Equipotential) boundaries
-        if (point.BC.type === "EP") {
-            const nearestBackward = findNearestBC(points, "FL", i, -1); // BC before the boundary
-            const nearestForward = findNearestBC(points, "FL", i, 1); // BC after the boundary
-            let next_index = incrementIndex(i, 1, points);
-            let incremental_length = length(points[i], points[next_index]);
-            total_length = nearestBackward.length + nearestForward.length;
-            
-            startBC = nearestBackward.BC.value + (nearestForward.BC.value - nearestBackward.BC.value) * nearestBackward.length / total_length;
-            endBC = nearestBackward.BC.value + (nearestForward.BC.value - nearestBackward.BC.value) * (nearestBackward.length + incremental_length) / total_length;
+        // Apply boundary conditions along each boundary segment
+        for (let step = 0; step <= steps; step++) {
+            const col = Math.round(x * (gridSize - 1));
+            const row = Math.round(y * (gridSize - 1));
 
-            console.log(startBC, endBC, total_length)
-            
-            
-            // console.log(nearestBackward, nearestForward)//, startBC, endBC)
-            for (let step = 0; step <= steps; step++) {
-                const col = Math.round(x * (gridSize - 1));
-                const row = Math.round(y * (gridSize - 1));
-
-                potential[row][col] = point.BC.value; // Fixed EP value
-                isEP[row][col] = true;
-
-                const t = step / steps; // Linear interpolation factor
-                streamfunction[row][col] = (1 - t) * startBC + t * endBC;
-
-                x += xIncrement;
-                y += yIncrement;
-            }
-        }
-
-        // Handle FL (Flowline) boundaries
-        if (point.BC.type === "FL") {
-            // Find the nearest numerical BCs for interpolation
-            const nearestBackward = findNearestBC(points, "EP", i, -1); // BC before the FL boundary
-            const nearestForward = findNearestBC(points, "EP", i, 1); // BC after the FL boundary
-            let next_index = incrementIndex(i, 1, points);
-            let incremental_length = length(points[i], points[next_index]);
-            total_length = nearestBackward.length + nearestForward.length;
-            
-            startBC = nearestBackward.BC.value + (nearestForward.BC.value - nearestBackward.BC.value) * nearestBackward.length / total_length;
-            endBC = nearestBackward.BC.value + (nearestForward.BC.value - nearestBackward.BC.value) * (nearestBackward.length + incremental_length) / total_length;
-
-            if (startBC !== null && endBC !== null) {
-                for (let step = 0; step <= steps; step++) {
-                    const col = Math.round(x * (gridSize - 1));
-                    const row = Math.round(y * (gridSize - 1));
-
-                    const t = step / steps; // Linear interpolation factor
-                    potential[row][col] = (1 - t) * startBC + t * endBC;
+            if (row >= 0 && row < rows && col >= 0 && col < cols) {
+                if (point.BC.type === "EP") {
+                    potential[row][col] = point.BC.value;
+                    isEP[row][col] = true;
+                } else if (point.BC.type === "FL") {
                     isFL[row][col] = true;
-
-                    streamfunction[row][col] = point.BC.value;
-
-                    x += xIncrement;
-                    y += yIncrement;
                 }
             }
+
+            x += xIncrement;
+            y += yIncrement;
         }
     });
 
+    function applyNeumannBC() {
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                if (isFL[row][col] && !isEP[row][col]) {
 
+                    const neighbors = [
+                        { r: row - 1, c: col, dir: 'north' },
+                        { r: row + 1, c: col, dir: 'south' },
+                        { r: row, c: col - 1, dir: 'west' },
+                        { r: row, c: col + 1, dir: 'east' }
+                    ];
 
+                    let interiorNeighbors = [];
 
-    // Successive Over-Relaxation (SOR) for potential
-    let converged = false;
-    while (!converged) {
-        if (taskId < currentTaskId) return;
+                    neighbors.forEach(({ r, c, dir }) => {
+                        if (r >= 0 && r < rows && c >= 0 && c < cols &&
+                            potential[r][c] !== null && !isEP[r][c] && !isFL[r][c]) {
+                            interiorNeighbors.push({ r, c, dir, value: potential[r][c] });
+                        }
+                    });
 
-        converged = true;
-        for (let row = 1; row < rows - 1; row++) {
-            for (let col = 1; col < cols - 1; col++) {
-                if (potential[row][col] === null || isEP[row][col]) continue; // Skip EP boundaries
+                    // Apply zero normal gradient - extrapolate from interior point(s)
+                    if (interiorNeighbors.length > 0) {
+                        let newValue = potential[row][col]; // Default to current value
 
-                if (isFL[row][col]) {
-                    // Propagate tangentially along flowline
-                    potential[row][col] = (
-                        potential[row][col - 1] +
-                        potential[row][col + 1]
-                    ) / 2; // Zero-gradient normal to flowline
-                } else {
-                    const oldPotential = potential[row][col];
-                    const newPotential = (1 - omega) * oldPotential + omega * (
-                        (potential[row - 1][col] + potential[row + 1][col] +
-                            potential[row][col - 1] + potential[row][col + 1]) / 4
-                    );
+                        if (interiorNeighbors.length === 1) {
+                            // Single interior neighbor - simple extrapolation for zero gradient
+                            // Set boundary value equal to interior neighbor (zero gradient)
+                            newValue = interiorNeighbors[0].value;
+                        } else {
+                            // Multiple interior neighbors - use directional extrapolation
+                            // For each pair of opposite directions, enforce zero gradient
+                            const north = interiorNeighbors.find(n => n.dir === 'north');
+                            const south = interiorNeighbors.find(n => n.dir === 'south');
+                            const west = interiorNeighbors.find(n => n.dir === 'west');
+                            const east = interiorNeighbors.find(n => n.dir === 'east');
 
-                    if (Math.abs(newPotential - oldPotential) > tolerance) {
-                        converged = false;
+                            let gradSum = 0;
+                            let gradCount = 0;
+
+                            // For vertical gradient (north-south)
+                            if (north && south) {
+                                // Interior on both sides - maintain current value (already satisfies zero gradient)
+                                gradSum += potential[row][col];
+                                gradCount++;
+                            } else if (north) {
+                                // Extrapolate from north: φ_boundary = φ_north (zero gradient in vertical direction)
+                                gradSum += north.value;
+                                gradCount++;
+                            } else if (south) {
+                                // Extrapolate from south: φ_boundary = φ_south (zero gradient in vertical direction)
+                                gradSum += south.value;
+                                gradCount++;
+                            }
+
+                            // For horizontal gradient (west-east)
+                            if (west && east) {
+                                // Interior on both sides - maintain current value (already satisfies zero gradient)
+                                gradSum += potential[row][col];
+                                gradCount++;
+                            } else if (west) {
+                                // Extrapolate from west: φ_boundary = φ_west (zero gradient in horizontal direction)
+                                gradSum += west.value;
+                                gradCount++;
+                            } else if (east) {
+                                // Extrapolate from east: φ_boundary = φ_east (zero gradient in horizontal direction)
+                                gradSum += east.value;
+                                gradCount++;
+                            }
+
+                            if (gradCount > 0) {
+                                newValue = gradSum / gradCount;
+                            } else {
+                                // Fallback: average all interior neighbors
+                                newValue = interiorNeighbors.reduce((sum, n) => sum + n.value, 0) / interiorNeighbors.length;
+                            }
+                        }
+
+                        // Apply with relaxation for stability
+                        // console.log('tada')
+                        potential[row][col] = (1 - omega) * potential[row][col] + omega * newValue;
                     }
-                    potential[row][col] = newPotential;
+                    // If no interior neighbors found, keep current value (shouldn't happen in well-posed problems)
                 }
             }
         }
     }
 
-    // Calculate streamfunction iteratively
-    const dx = 1 / (cols - 1);
-    for (let row = 1; row < rows - 1; row++) {
-        for (let col = 1; col < cols - 1; col++) {
-            if (streamfunction[row][col] === null) { streamfunction[row][col] = null; continue; };
-            if (potential[row][col] === null) { streamfunction[row][col] = null; continue; };
+    // Successive Over-Relaxation (SOR) for potential
+    let converged = false;
+    let iterations = 0;
 
-            const dPhi_dx = (potential[row][col + 1] - potential[row][col - 1]) / 2 / dx;
-            // const dPhi_dy = (potential[row + 1][col] - potential[row - 1][col]) / 2;
+    while (!converged && iterations < maxIterations) {
+        if (taskId < currentTaskId) return;
 
-            streamfunction[row][col] = streamfunction[row - 1][col] + dPhi_dx;
+        converged = true;
+        let maxChange = 0;
+
+        for (let row = 1; row < rows - 1; row++) {
+            for (let col = 1; col < cols - 1; col++) {
+                if (potential[row][col] === null || isEP[row][col] || isFL[row][col]) continue; // Skip boundaries and outside domain
+
+                const oldPotential = potential[row][col];
+
+                // Standard Laplace equation for interior points only
+                potential[row][col] = (1 - omega) * oldPotential + omega * (
+                    (potential[row - 1][col] + potential[row + 1][col] +
+                        potential[row][col - 1] + potential[row][col + 1]) / 4
+                );
+
+                const change = Math.abs(potential[row][col] - oldPotential);
+                maxChange = Math.max(maxChange, change);
+
+                if (change > tolerance) {
+                    converged = false;
+                }
+            }
+        }
+
+        // Apply Neumann boundary conditions after each iteration
+        applyNeumannBC();
+
+        iterations++;
+    }
+
+    console.log(`SOR converged after ${iterations} iterations`);
+
+    if (iterations >= maxIterations) {
+        console.warn("SOR did not converge within maximum iterations");
+    }
+
+    // Calculate streamfunction from potential field
+    // Use simple, robust integration method for orthogonal flow nets
+    // Relationship: ∂ψ/∂x = ∂φ/∂y and ∂ψ/∂y = -∂φ/∂x
+
+    // Initialize streamfunction 
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            if (potential[row][col] === null) {
+                streamfunction[row][col] = null;
+            } else {
+                streamfunction[row][col] = 0.0;
+            }
+        }
+    }
+
+    // Set a reference point (bottom-left corner of domain)
+    let refRow = -1, refCol = -1;
+    for (let row = rows - 1; row >= 0; row--) {
+        for (let col = 0; col < cols; col++) {
+            if (potential[row][col] !== null) {
+                refRow = row;
+                refCol = col;
+                break;
+            }
+        }
+        if (refRow !== -1) break;
+    }
+
+    if (refRow !== -1) {
+        streamfunction[refRow][refCol] = 0.0;
+
+        // First, integrate along the bottom row (constant y)
+        for (let col = refCol + 1; col < cols; col++) {
+            if (potential[refRow][col] !== null && potential[refRow][col - 1] !== null) {
+                // ∂ψ/∂x = ∂φ/∂y (using central difference for ∂φ/∂y)
+                let dPhi_dy = 0;
+                if (refRow > 0 && refRow < rows - 1 &&
+                    potential[refRow + 1][col] !== null && potential[refRow - 1][col] !== null) {
+                    dPhi_dy = (potential[refRow + 1][col] - potential[refRow - 1][col]) / (2 * dy);
+                } else if (refRow > 0 && potential[refRow - 1][col] !== null) {
+                    dPhi_dy = (potential[refRow][col] - potential[refRow - 1][col]) / dy;
+                } else if (refRow < rows - 1 && potential[refRow + 1][col] !== null) {
+                    dPhi_dy = (potential[refRow + 1][col] - potential[refRow][col]) / dy;
+                }
+
+                streamfunction[refRow][col] = streamfunction[refRow][col - 1] + dPhi_dy * dx;
+            } else {
+                streamfunction[refRow][col] = null;
+            }
+        }
+
+        // Then integrate upward from each point on the bottom row
+        for (let col = refCol; col < cols; col++) {
+            if (potential[refRow][col] !== null) {
+                for (let row = refRow - 1; row >= 0; row--) {
+                    if (potential[row][col] !== null && potential[row + 1][col] !== null) {
+                        // ∂ψ/∂y = -∂φ/∂x (using central difference for ∂φ/∂x)
+                        let dPhi_dx = 0;
+                        if (col > 0 && col < cols - 1 &&
+                            potential[row][col + 1] !== null && potential[row][col - 1] !== null) {
+                            dPhi_dx = (potential[row][col + 1] - potential[row][col - 1]) / (2 * dx);
+                        } else if (col > 0 && potential[row][col - 1] !== null) {
+                            dPhi_dx = (potential[row][col] - potential[row][col - 1]) / dx;
+                        } else if (col < cols - 1 && potential[row][col + 1] !== null) {
+                            dPhi_dx = (potential[row][col + 1] - potential[row][col]) / dx;
+                        }
+
+                        streamfunction[row][col] = streamfunction[row + 1][col] - dPhi_dx * dy;
+                    } else {
+                        streamfunction[row][col] = null;
+                    }
+                }
+            }
+        }
+
+        // Similarly integrate downward from the reference row
+        for (let col = refCol; col < cols; col++) {
+            if (potential[refRow][col] !== null) {
+                for (let row = refRow + 1; row < rows; row++) {
+                    if (potential[row][col] !== null && potential[row - 1][col] !== null) {
+                        // ∂ψ/∂y = -∂φ/∂x
+                        let dPhi_dx = 0;
+                        if (col > 0 && col < cols - 1 &&
+                            potential[row][col + 1] !== null && potential[row][col - 1] !== null) {
+                            dPhi_dx = (potential[row][col + 1] - potential[row][col - 1]) / (2 * dx);
+                        } else if (col > 0 && potential[row][col - 1] !== null) {
+                            dPhi_dx = (potential[row][col] - potential[row][col - 1]) / dx;
+                        } else if (col < cols - 1 && potential[row][col + 1] !== null) {
+                            dPhi_dx = (potential[row][col + 1] - potential[row][col]) / dx;
+                        }
+
+                        streamfunction[row][col] = streamfunction[row - 1][col] - dPhi_dx * dy;
+                    } else {
+                        streamfunction[row][col] = null;
+                    }
+                }
+            }
         }
     }
 
     // Send results back
     if (taskId === currentTaskId) {
+        // Debug: check if we have valid data
+        const potentialFlat = potential.flat().filter(v => v !== null);
+        const streamFlat = streamfunction.flat().filter(v => v !== null);
+        // console.log("Potential range:", Math.min(...potentialFlat), "to", Math.max(...potentialFlat));
+        // console.log("Streamfunction range:", Math.min(...streamFlat), "to", Math.max(...streamFlat));
+        // console.log("Valid potential points:", potentialFlat.length);
+
+        // Validation: check if potential values are within expected bounds
+        const minActual = Math.min(...potentialFlat);
+        const maxActual = Math.max(...potentialFlat);
+        if (minActual < minPotential - 1e-10 || maxActual > maxPotential + 1e-10) {
+            console.warn(`Potential values out of bounds! Expected [${minPotential}, ${maxPotential}], got [${minActual}, ${maxActual}]`);
+        }
+
         self.postMessage({ potential, streamfunction });
     }
 };
-
-

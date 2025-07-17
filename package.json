@@ -1,7 +1,7 @@
 {
-  "name": "constitutive-models",
-  "version": "1.0.0",
-  "description": "GUI to help users observe behaviour of constitutive models",
+  "name": "flownet",
+  "version": "0.1.0",
+  "description": "GUI to help users observe behaviour of groundwater flow",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -9,9 +9,9 @@
     "start": "webpack serve --open"
   },
   "keywords": [
-    "Constitutive models",
-    "Geomechanics",
-    "Granular materials"
+    "Groundwater flow",
+    "Hydraulic modeling",
+    "Finite difference"
   ],
   "author": "Benjy Marks",
   "license": "ISC",

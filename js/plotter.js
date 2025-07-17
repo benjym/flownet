@@ -1,65 +1,88 @@
 import { contours } from 'd3-contour';
 // import { geoPath } from 'd3';
 import Konva from 'konva';
+import { Lut } from './Lut.js';
 
 function plotFlownetWithContours(potential, streamfunction, layer, width, height, contourValues, flowContourValues) {
-    // Remove boundaries from both potential and streamfunction
-    // potential = potential.slice(1, -1).map(row => row.slice(1, -1));
-    // streamfunction = streamfunction.slice(1, -1).map(row => row.slice(1, -1));
-
-    // console.log(potential)
-
     const ny = potential.length;
     const nx = potential[0].length;
 
     const cellWidth = width / nx;
     const cellHeight = height / ny;
 
-    const flatPotential = potential.flat();
+    // Filter out null values and calculate ranges
+    const flatPotential = potential.flat().filter(v => v !== null);
+    const flatStreamfunction = streamfunction.flat().filter(v => v !== null);
 
-    const flatStreamfunction = streamfunction.flat();
+    const minPotential = Math.min(...flatPotential);
+    const maxPotential = Math.max(...flatPotential);
     const minStreamfunction = Math.min(...flatStreamfunction);
     const maxStreamfunction = Math.max(...flatStreamfunction);
-    // console.log('HI!')
-    // console.log(minStreamfunction, maxStreamfunction)
+
+    const numEquipotentials = 10;
+    const deltaEquipotential = (maxPotential - minPotential) / (numEquipotentials + 1);
+
+    console.log(`Potential range: ${minPotential.toFixed(4)} to ${maxPotential.toFixed(4)}`);
+    console.log(`Streamfunction range: ${minStreamfunction.toFixed(4)} to ${maxStreamfunction.toFixed(4)}`);
+
     // Clear the layer
     layer.destroyChildren();
 
-    // Generate flow contours by creating a synthetic "flow potential" field
-    // flatStreamfunction.forEach((value, index) => { flatStreamfunction[index] = (value - minStreamfunction) / (maxStreamfunction - minStreamfunction); });
-    // console.log(flatStreamfunction)
-    // let streamfunctionContourValues = contourValues.map(value => (value - minStreamfunction) / (maxStreamfunction - minStreamfunction));
-    // console.log(streamfunctionContourValues)
+    // Auto-generate evenly spaced equipotential contour levels
+    const autoEquipotentialLevels = [];
+    for (let i = 1; i <= numEquipotentials; i++) {
+        autoEquipotentialLevels.push(minPotential + i * deltaEquipotential);
+    }
+
+    // Auto-generate streamline contour levels to form squares
+    // Set the number of streamlines so that the spacing is the same as equipotential levels
+
+
+    const streamStep = deltaEquipotential;
+    const numStreamlines = Math.ceil((maxStreamfunction - minStreamfunction) / streamStep);
+    const autoStreamlineLevels = [];
+    for (let i = 1; i <= numStreamlines; i++) {
+        autoStreamlineLevels.push(minStreamfunction + i * streamStep);
+    }
+
+    console.log('Equipotential levels:', autoEquipotentialLevels.map(v => v.toFixed(4)));
+    console.log('Streamline levels:', autoStreamlineLevels.map(v => v.toFixed(4)));
+
+    // Create flat arrays with nulls for contouring
+    const flatPotentialWithNulls = potential.flat();
+    const flatStreamfunctionWithNulls = streamfunction.flat();
 
     drawHeatmap(potential, flatPotential, layer, nx, ny, cellWidth, cellHeight);
-    // drawHeatmap(streamfunction, flatStreamfunction, layer, nx, ny, cellWidth, cellHeight);
 
-    drawContours(flatPotential, layer, nx, ny, cellWidth, cellHeight, contourValues, 'white')
+    drawContours(flatPotentialWithNulls, layer, nx, ny, cellWidth, cellHeight, autoEquipotentialLevels, 'red', 'Equipotentials')
 
-    drawContours(flatStreamfunction, layer, nx, ny, cellWidth, cellHeight, contourValues, 'black')
+    drawContours(flatStreamfunctionWithNulls, layer, nx, ny, cellWidth, cellHeight, autoStreamlineLevels, 'blue', 'Streamlines')
 
     // Render the layer
     layer.draw();
 }
 
-function drawHeatmap(potential, flatPotential, layer, nx, ny, cellWidth, cellHeight){
+function drawHeatmap(potential, flatPotential, layer, nx, ny, cellWidth, cellHeight) {
     const minPotential = Math.min(...flatPotential);
     const maxPotential = Math.max(...flatPotential);
+
+    // Create a colormap for potential visualization
+    // 'viridis' is excellent for scientific data - perceptually uniform and colorblind-friendly
+    const lut = new Lut('inferno', 256);
+    lut.setMin(minPotential);
+    lut.setMax(maxPotential);
+
     // Draw heatmap
-    let color;
     for (let j = 0; j < ny; j++) {
         for (let i = 0; i < nx; i++) {
-            
+            let color;
+
             if (potential[j][i] === null) {
-                color = 'rgb(0, 0, 0)';
-                // console.log('GOT NULL')
-            }
-            else {
-            color = `rgb(
-                ${Math.round(255 * (potential[j][i] - minPotential) / (maxPotential - minPotential))},
-                0,
-                ${Math.round(255 * (1 - (potential[j][i] - minPotential) / (maxPotential - minPotential)))}
-            )`;
+                color = 'rgb(0, 0, 0)'; // Black for null values (outside domain)
+            } else {
+                // Get color from the colormap
+                const lutColor = lut.getColor(potential[j][i]);
+                color = `rgb(${Math.round(lutColor.r * 255)}, ${Math.round(lutColor.g * 255)}, ${Math.round(lutColor.b * 255)})`;
             }
 
             const rect = new Konva.Rect({
@@ -77,32 +100,40 @@ function drawHeatmap(potential, flatPotential, layer, nx, ny, cellWidth, cellHei
     }
 }
 
-function drawContours(flatPotential, layer, nx, ny, cellWidth, cellHeight, contourValues, colour){
+function drawContours(flatData, layer, nx, ny, cellWidth, cellHeight, contourValues, colour, label) {
+    // Replace null values with NaN for d3-contour (it handles NaN better than null)
+    const processedData = flatData.map(v => v === null ? NaN : v);
+
     // Generate contours using d3-contour
     const contourGenerator = contours()
         .size([nx, ny])
-        .smooth(1)
+        .smooth(true)
         .thresholds(contourValues);
 
-    const contourData = contourGenerator(flatPotential);
+    const contourData = contourGenerator(processedData);
+
+    console.log(`${label}: Generated ${contourData.length} contour lines`);
 
     // Manually process and scale each contour ring
-    contourData.forEach((contour) => {
+    contourData.forEach((contour, index) => {
         if (contour.coordinates.length === 0) {
             return;
         }
-        contour.coordinates[0].forEach((ring) => {
-            const points = ring.flatMap(([x, y]) => [x * cellWidth, y * cellHeight]);
+        contour.coordinates.forEach((polygon) => {
+            polygon.forEach((ring) => {
+                const points = ring.flatMap(([x, y]) => [x * cellWidth, y * cellHeight]);
 
-            const line = new Konva.Line({
-                points,
-                stroke: colour,
-                strokeWidth: 2,
-                lineJoin: 'round',
-                closed: false, // Ensure it's a line, not a closed shape
+                const line = new Konva.Line({
+                    points,
+                    stroke: colour,
+                    strokeWidth: 2,
+                    lineJoin: 'round',
+                    lineCap: 'round',
+                    closed: false,
+                });
+
+                layer.add(line);
             });
-
-            layer.add(line);
         });
     });
 }

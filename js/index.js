@@ -1,48 +1,16 @@
 import css from '../css/main.css';
-// import json5_file from '../data/test.json5';
-import json5_file from '../data/dam.json5';
-import JSON5 from 'json5';
 import Konva from 'konva';
-import Worker from './sorWorker.worker.js';
 import { plotFlownetWithContours } from './plotter.js';
 
-let taskId = 0; // Unique task ID for each worker request
-const width = 800;
-const height = 600;
+// Import modular components
+import { width, height, config, updateConfig, initializeData } from './config.js';
+import { drawWaterLevels } from './waterLevels.js';
+import { drawStandpipes, updateStandpipeHeads } from './standpipes.js';
+import { drawDomainBoundary } from './domainBoundary.js';
+import { setupClickEvents } from './eventHandlers.js';
+import { setupWorker, sendTask } from './workerManager.js';
 
-// Initial points for the domain
-
-let data = JSON5.parse(JSON.stringify(json5_file));
-let points = data.points;
-let head = data.head;
-let solid = data.solid;
-
-// Configuration for SOR
-const worker = new Worker();
-const config = {
-    points: points,
-    width: width,
-    height: height,
-    head: head,
-    gridSize: data.gridSize,
-    tolerance: 1e-6,
-    omega: 1.8,
-    k: 1,
-};
-
-function sendTask(data) {
-    taskId++;
-    data.taskId = taskId;
-    worker.postMessage(data);
-}
-
-// Handle results from the worker
-worker.onmessage = function (e) {
-    // plotPotential(e.data.potential, layer2, width, height);
-    // plotPotentialWithContours(e.data.potential, layer2, width, height, data.contourValues);
-    plotFlownetWithContours(e.data.potential, e.data.streamfunction, layer2, width, height, data.contourValues, data.contourValues);
-};
-
+// Create Konva stage and layers
 const stage = new Konva.Stage({
     container: 'container',
     width: width,
@@ -54,152 +22,48 @@ const layer2 = new Konva.Layer();
 stage.add(layer2);
 stage.add(layer);
 
-let polygon = null;
-let solid_line = null;
+// Setup worker to handle calculation results
+setupWorker((data) => {
+    plotFlownetWithContours(data.potential, data.streamfunction, layer2, width, height, data.contourValues, data.contourValues);
+    updateStandpipeHeads(data.potential, layer);
+    layer.draw();
+});
 
-// Function to draw the domain
+// Main drawing function
 function drawPolygon() {
-    if (polygon) {
-        polygon.destroy();
-    }
+    // Clear existing water level lines
+    layer.find('.water-level-line').forEach(line => line.destroy());
+    layer.find('.water-area').forEach(area => area.destroy());
+    layer.find('.water-level-handle').forEach(handle => handle.destroy());
+    layer.find('.water-level-label').forEach(label => label.destroy());
 
-    if (points.length > 1) {
-        polygon = new Konva.Group();
-        for (let i = 0; i < points.length; i++) {
-            const p1 = points[i];
-            let colour = p1.BC.type === 'FL' ? 'red' : 'white';
-            const p2 = points[(i + 1) % points.length];
-            const line = new Konva.Line({
-                points: [p1.x * width, p1.y * height, p2.x * width, p2.y * height],
-                stroke: colour,
-                strokeWidth: 8,
-            });
-            polygon.add(line);
-        }
-        // polygon = new Konva.Line({
-        //     points: points.flatMap(p => [p.x * width, p.y * height]),
-        //     // stroke: 'brown',
-        //     stroke: colours,
-        //     strokeWidth: 2,
-        //     closed: true,
-        // });
+    // Draw domain boundary
+    drawDomainBoundary(layer);
 
-        layer.add(polygon);
-    }
+    // Draw water levels for EP boundary conditions
+    drawWaterLevels(layer, sendTask);
 
-    if (solid_line) {
-        solid_line.destroy();
-    }
+    // Draw standpipes
+    drawStandpipes(layer);
 
-    if (solid.length > 1) {
-        console.log(solid)
-        solid_line = new Konva.Line({
-            points: solid.flatMap(p => [p.x * width, p.y * height]),
-            fill: 'gray',
-            closed: true,
-        });
-
-        layer.add(solid_line);
-    }
-    drawHeadLevelLines();
     layer.draw();
-    config.points = points;
+    updateConfig();
     sendTask(config);
 }
 
-// Function to calculate the first intersection
-function findFirstIntersection(yLevel, xStart, direction = 'left') {
-    for (let i = 0; i < points.length; i++) {
-        const p1 = points[i];
-        const p2 = points[(i + 1) % points.length];
+// Setup event handlers
+setupClickEvents(stage, layer, sendTask);
 
-        if ((p1.y <= yLevel && p2.y >= yLevel) || (p1.y >= yLevel && p2.y <= yLevel)) {
-            const slope = (p2.x - p1.x) / (p2.y - p1.y);
-            const xIntersect = p1.x + slope * (yLevel - p1.y);
-            if ((direction === 'left' && xIntersect >= xStart) || (direction === 'right' && xIntersect <= xStart)) {
-                return xIntersect;
-            }
-        }
+// Initialize with async data loading
+async function initialize() {
+    try {
+        await initializeData();
+        drawPolygon();
+    } catch (error) {
+        console.error('Failed to initialize application:', error);
+        // Could show an error message to user here
     }
-    return null;
 }
 
-// Function to draw head level lines
-function drawHeadLevelLines() {
-
-    layer.find('.head-line').forEach(line => line.destroy());
-
-    // Left head line
-    const leftIntersection = findFirstIntersection(head.left, 0, 'left');
-    const leftLine = new Konva.Line({
-        points: [0, head.left, leftIntersection !== null ? leftIntersection : width, head.left],
-        stroke: 'green',
-        strokeWidth: 2,
-        name: 'head-line',
-        draggable: true
-    });
-
-    leftLine.on('dragmove', () => {
-        head.left = leftLine.points()[1] / height;
-        drawHeadLevelLines();
-    });
-
-    layer.add(leftLine);
-
-    // Right head line
-    const rightIntersection = findFirstIntersection(head.right, width, 'right');
-    const rightLine = new Konva.Line({
-        points: [rightIntersection !== null ? rightIntersection : 0, head.right, width, head.right],
-        stroke: 'blue',
-        strokeWidth: 2,
-        name: 'head-line',
-        draggable: true
-    });
-
-    rightLine.on('dragmove', () => {
-        head.right = rightLine.points()[1] / height;
-        drawHeadLevelLines();
-    });
-
-    layer.add(rightLine);
-    layer.draw();
-    config.head = head; // Update the head configuration
-    sendTask(config);
-}
-
-// Make points draggable
-function makePointsDraggable() {
-    layer.find('Circle').forEach(circle => circle.destroy());
-
-    points.forEach((point, index) => {
-        const circle = new Konva.Circle({
-            x: point.x * width,
-            y: point.y * height,
-            radius: 5,
-            fill: 'white',
-            draggable: true,
-        });
-
-        circle.on('dragmove', () => {
-            points[index].x = circle.x() / width;
-            points[index].y = circle.y() / height;
-            drawPolygon();
-        });
-
-        circle.on('mousedown', (e) => {
-            e.cancelBubble = true;
-        });
-
-        layer.add(circle);
-    });
-
-    layer.draw();
-    config.points = points;
-    sendTask(config);
-}
-
-
-
-// Initialize
-drawPolygon();
-// makePointsDraggable();
+// Start the application
+initialize();
