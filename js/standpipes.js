@@ -85,7 +85,7 @@ export function drawStandpipes(layer) {
             x: baseX,
             y: baseY,
             radius: 3,
-            fill: 'red',
+            fill: 'white',
             stroke: 'black',
             strokeWidth: 1,
             name: 'standpipe',
@@ -117,13 +117,13 @@ export function drawStandpipes(layer) {
 
         // Add hover effect to show it's interactive
         baseMarker.on('mouseenter', function () {
-            this.fill('darkred');
+            this.fill('gray');
             document.body.style.cursor = 'pointer';
             layer.draw();
         });
 
         baseMarker.on('mouseleave', function () {
-            this.fill('red');
+            this.fill('white');
             document.body.style.cursor = 'default';
             layer.draw();
         });

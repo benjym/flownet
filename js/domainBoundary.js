@@ -15,7 +15,7 @@ export function drawDomainBoundary(layer) {
         polygon = new Konva.Group();
         for (let i = 0; i < points.length; i++) {
             const p1 = points[i];
-            let colour = p1.BC.type === 'FL' ? 'red' : 'white';
+            let colour = p1.BC.type === 'FL' ? 'blue' : 'red';
             const p2 = points[(i + 1) % points.length];
             const line = new Konva.Line({
                 points: [p1.x * width, p1.y * height, p2.x * width, p2.y * height],

@@ -52,7 +52,7 @@ function plotFlownetWithContours(potential, streamfunction, layer, width, height
     const flatPotentialWithNulls = potential.flat();
     const flatStreamfunctionWithNulls = streamfunction.flat();
 
-    drawHeatmap(potential, flatPotential, layer, nx, ny, cellWidth, cellHeight);
+    // drawHeatmap(potential, flatPotential, layer, nx, ny, cellWidth, cellHeight);
 
     drawContours(flatPotentialWithNulls, layer, nx, ny, cellWidth, cellHeight, autoEquipotentialLevels, 'red', 'Equipotentials')
 
