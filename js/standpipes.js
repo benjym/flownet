@@ -51,12 +51,12 @@ export function drawStandpipes(layer) {
         // Calculate standpipe height with reasonable scaling
         // Use a smaller scale factor to prevent extremely tall standpipes
         const pixelsPerUnit = 8; // Same as water levels
-        const maxHeadToShow = Math.min(headValue, 15); // Cap at 15 units for reasonable display
-        const standpipeHeight = Math.max(0, maxHeadToShow * pixelsPerUnit);
-        const standpipeTop = baseY - standpipeHeight;        // Create standpipe tube (thin gray rectangle) - always show some tube above water
-        const minTubeHeight = 40; // Minimum tube height in pixels
+        const standpipeHeight = headValue * pixelsPerUnit;
+        const standpipeTop = baseY - standpipeHeight;
+
+        // Create standpipe tube (thin gray rectangle) - always show some tube above water
         const tubeExtension = 20; // Extra tube height above water level
-        const tubeHeight = Math.max(standpipeHeight + tubeExtension, minTubeHeight);
+        const tubeHeight = standpipeHeight + tubeExtension;
         const tubeTop = baseY - tubeHeight;
 
         const tube = new Konva.Rect({
@@ -75,7 +75,7 @@ export function drawStandpipes(layer) {
             x: baseX - 1.5,
             y: standpipeTop,
             width: 3,
-            height: Math.max(0, standpipeHeight),
+            height: standpipeHeight,
             fill: 'blue',
             name: 'standpipe',
         });
@@ -91,21 +91,10 @@ export function drawStandpipes(layer) {
             name: 'standpipe',
         });
 
-        // Create label showing head value
-        const headLabel = new Konva.Text({
-            x: baseX + 8,
-            y: tubeTop - 15,
-            text: `H: ${headValue.toFixed(2)}`,
-            fontSize: 10,
-            fill: 'black',
-            name: 'standpipe-label',
-        });
-
         // Store reference for updates
         tube.standpipeIndex = index;
         waterInTube.standpipeIndex = index;
         baseMarker.standpipeIndex = index;
-        headLabel.standpipeIndex = index;
 
         // Add right-click to remove standpipe
         baseMarker.on('contextmenu', function (e) {
@@ -131,7 +120,6 @@ export function drawStandpipes(layer) {
         layer.add(tube);
         layer.add(waterInTube);
         layer.add(baseMarker);
-        layer.add(headLabel);
     });
 }
 

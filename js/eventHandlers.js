@@ -1,5 +1,5 @@
 // Event handlers for user interactions
-import { width, height, solid, config, updateConfig } from './config.js';
+import { width, height, solid, config, updateConfig, data } from './config.js';
 import { isPointInSolid, addStandpipe, drawStandpipes } from './standpipes.js';
 
 // Function to setup click events for standpipe creation
@@ -22,33 +22,24 @@ export function setupClickEvents(stage, layer, sendTask) {
         if (targetName !== 'water-level-line' &&
             targetName !== 'standpipe' &&
             targetClass !== 'Circle') {
-            console.log('Click on valid target detected'); // Debug output
+            
+            // Add standpipe with initial head of 0 (will be updated by calculation)
+            addStandpipe(relativeX, relativeY, 0);            drawStandpipes(layer);
+            layer.draw();
 
-            // Check if point is inside the solid region (soil)
-            const inSolid = isPointInSolid(relativeX, relativeY, solid);
-            console.log('Point in solid:', inSolid); // Debug output
+            // Trigger calculation to get head value
+            sendTask(config);
+            // } else {
+            //     // For now, allow standpipes anywhere for testing
+            //     console.log('Adding standpipe anyway for testing'); // Debug output
+            //     addStandpipe(relativeX, relativeY, Math.random() * 10);
 
-            if (inSolid) {
-                console.log('Adding standpipe'); // Debug output
-                // Add new standpipe
-                addStandpipe(relativeX, relativeY, 0);
+            //     drawStandpipes(layer);
+            //     layer.draw();
 
-                drawStandpipes(layer);
-                layer.draw();
-
-                // Trigger calculation to get head value
-                sendTask(config);
-            } else {
-                // For now, allow standpipes anywhere for testing
-                console.log('Adding standpipe anyway for testing'); // Debug output
-                addStandpipe(relativeX, relativeY, Math.random() * 10);
-
-                drawStandpipes(layer);
-                layer.draw();
-
-                // Trigger calculation to get head value
-                sendTask(config);
-            }
+            //     // Trigger calculation to get head value
+            //     sendTask(config);
+            // }
         }
     });
 }

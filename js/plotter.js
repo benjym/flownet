@@ -3,7 +3,7 @@ import { contours } from 'd3-contour';
 import Konva from 'konva';
 import { Lut } from './Lut.js';
 
-function plotFlownetWithContours(potential, streamfunction, layer, width, height, contourValues, flowContourValues) {
+function plotFlownetWithContours(potential, streamfunction, layer, width, height) {
     const ny = potential.length;
     const nx = potential[0].length;
 

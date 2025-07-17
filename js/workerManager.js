@@ -23,9 +23,7 @@ export function sendTask(data) {
         // Worker is busy, store this as the pending task
         pendingTask = data;
     }
-}
-
-// Setup worker message handler
+}// Setup worker message handler
 export function setupWorker(onResults) {
     worker.onmessage = function (e) {
         isWorkerBusy = false;
@@ -41,5 +39,19 @@ export function setupWorker(onResults) {
             worker.postMessage(pendingTask);
             pendingTask = null;
         }
+    };
+
+    // Add error handler
+    worker.onerror = function (error) {
+        console.error('Worker error:', error);
+        isWorkerBusy = false; // Reset busy state on error
+        pendingTask = null; // Clear pending task
+    };
+
+    // Add message error handler  
+    worker.onmessageerror = function (error) {
+        console.error('Worker message error:', error);
+        isWorkerBusy = false; // Reset busy state on error
+        pendingTask = null; // Clear pending task
     };
 }

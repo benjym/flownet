@@ -24,7 +24,7 @@ stage.add(layer);
 
 // Setup worker to handle calculation results
 setupWorker((data) => {
-    plotFlownetWithContours(data.potential, data.streamfunction, layer2, width, height, data.contourValues, data.contourValues);
+    plotFlownetWithContours(data.potential, data.streamfunction, layer2, width, height);
     updateStandpipeHeads(data.potential, layer);
     layer.draw();
 });

@@ -1,10 +1,11 @@
+// Keep track of the latest task ID across messages
+let currentTaskId = 0;
+
 self.onmessage = function (event) {
     const { taskId, points, gridSize, tolerance, omega, maxIterations } = event.data;
 
-    let currentTaskId = 0;
-    currentTaskId++;
-
-    if (taskId < currentTaskId) return;
+    // Update to the latest task ID
+    currentTaskId = taskId;
 
     const cols = gridSize;
     const rows = gridSize;
@@ -175,7 +176,6 @@ self.onmessage = function (event) {
                         }
 
                         // Apply with relaxation for stability
-                        // console.log('tada')
                         potential[row][col] = (1 - omega) * potential[row][col] + omega * newValue;
                     }
                     // If no interior neighbors found, keep current value (shouldn't happen in well-posed problems)
@@ -327,22 +327,9 @@ self.onmessage = function (event) {
         }
     }
 
-    // Send results back
-    if (taskId === currentTaskId) {
-        // Debug: check if we have valid data
-        const potentialFlat = potential.flat().filter(v => v !== null);
-        const streamFlat = streamfunction.flat().filter(v => v !== null);
-        // console.log("Potential range:", Math.min(...potentialFlat), "to", Math.max(...potentialFlat));
-        // console.log("Streamfunction range:", Math.min(...streamFlat), "to", Math.max(...streamFlat));
-        // console.log("Valid potential points:", potentialFlat.length);
-
-        // Validation: check if potential values are within expected bounds
-        const minActual = Math.min(...potentialFlat);
-        const maxActual = Math.max(...potentialFlat);
-        if (minActual < minPotential - 1e-10 || maxActual > maxPotential + 1e-10) {
-            console.warn(`Potential values out of bounds! Expected [${minPotential}, ${maxPotential}], got [${minActual}, ${maxActual}]`);
-        }
-
-        self.postMessage({ potential, streamfunction });
-    }
+    self.postMessage({
+        taskId: taskId,
+        potential: potential,
+        streamfunction: streamfunction,
+    });
 };

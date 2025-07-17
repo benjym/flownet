@@ -1,5 +1,5 @@
 {
-    gridSize : 200,
+    gridSize : 100,
     points : [
         { x: 0, y: 0.5, BC: {type:'EP', value: 10.0} },        // High potential boundary
         { x: 0.4, y: 0.5, BC: {type:'FL'}},                   // Flowline boundary
