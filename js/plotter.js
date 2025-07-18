@@ -269,7 +269,7 @@ function drawContours(flatData, layer, nx, ny, cellWidth, cellHeight, contourVal
     // Generate contours using d3-contour
     const contourGenerator = contours()
         .size([nx, ny])
-        .smooth(true)
+        // .smooth(true)
         .thresholds(contourValues);
 
     const contourData = contourGenerator(processedData);

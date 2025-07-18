@@ -15,6 +15,7 @@ export const height = minDimension - padding; // Maintain aspect ratio
 export let data = null;
 export let points = [];
 export let solid = null;
+export let drain = null;
 
 // Configuration for SOR
 export let config = {
@@ -22,9 +23,10 @@ export let config = {
     width: width,
     height: height,
     gridSize: 100, // Default value
-    tolerance: 1e-4,
+    tolerance: 1e-6,
     omega: 1.8,
-    maxIterations: 1000,
+    maxIterations: 2000,
+    drain: null,
 };
 
 // Function to get URL parameter
@@ -59,10 +61,12 @@ export async function loadData(fileName = 'dam') {
         data = JSON5.parse(JSON.stringify(rawData));
         points = data.points || [];
         solid = data.solid || null;
+        drain = data.drain || null;
 
         // Update config
         config.points = points;
         config.gridSize = data.gridSize || 100;
+        config.drain = drain;
 
         console.log(`Loaded data file: ${fileName}.json5`);
         return data;

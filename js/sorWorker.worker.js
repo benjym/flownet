@@ -2,7 +2,7 @@
 let currentTaskId = 0;
 
 self.onmessage = function (event) {
-    const { taskId, points, gridSize, tolerance, omega, maxIterations } = event.data;
+    const { taskId, points, gridSize, tolerance, omega, maxIterations, drain } = event.data;
 
     // Update to the latest task ID
     currentTaskId = taskId;
@@ -46,6 +46,12 @@ self.onmessage = function (event) {
         }
     });
 
+    // Include drain potential in min/max calculation
+    if (drain && drain.BC && drain.BC.value !== undefined) {
+        minPotential = Math.min(minPotential, drain.BC.value);
+        maxPotential = Math.max(maxPotential, drain.BC.value);
+    }
+
     // If no EP boundaries found, use default range
     if (minPotential === Infinity) {
         minPotential = 0;
@@ -57,7 +63,7 @@ self.onmessage = function (event) {
 
     // Store potential range for relative convergence checking
     const potentialRange = Math.max(maxPotential - minPotential, 1e-12); // Prevent division by zero
-    
+
     console.log(`Potential range: ${potentialRange}, Using relative tolerance: ${tolerance}`);
 
     // Initialize the domain: mark all points
@@ -101,6 +107,26 @@ self.onmessage = function (event) {
             y += yIncrement;
         }
     });
+
+    // Handle drain boundary condition (circular EP)
+    if (drain) {
+        const centerCol = Math.round(drain.x * (gridSize - 1));
+        const centerRow = Math.round(drain.y * (gridSize - 1));
+        const radiusInGridUnits = drain.r * (gridSize - 1);
+
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const distance = Math.sqrt(
+                    Math.pow(col - centerCol, 2) + Math.pow(row - centerRow, 2)
+                );
+
+                if (distance <= radiusInGridUnits) {
+                    potential[row][col] = drain.BC.value;
+                    isEP[row][col] = true;
+                }
+            }
+        }
+    }
 
     function applyNeumannBC() {
         for (let row = 0; row < rows; row++) {

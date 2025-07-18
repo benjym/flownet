@@ -10,6 +10,7 @@ import { drawDomainBoundary } from './domainBoundary.js';
 import { setupClickEvents } from './eventHandlers.js';
 import { setupWorker, sendTask } from './workerManager.js';
 import { toggleColorbar } from './plotter.js';
+import { drawDrain } from './drains.js';
 
 // Create Konva stage and layers
 const stage = new Konva.Stage({
@@ -53,7 +54,7 @@ setupWorker((data) => {
     // Cache both datasets for future redraws
     latestPotentialData = data.potential;
     latestStreamfunctionData = data.streamfunction;
-    
+
     plotFlownetWithContours(data.potential, data.streamfunction, layer2, width, height);
     updateStandpipes(data.potential, layer);
     layer.draw();
@@ -73,6 +74,9 @@ function drawPolygon() {
     // Draw water levels for EP boundary conditions
     drawWaterLevels(layer, sendTask);
 
+    // Draw drain if present
+    drawDrain(layer, sendTask);
+
     // Draw standpipes
     // updateStandpipes(layer);
 
@@ -85,7 +89,7 @@ function drawPolygon() {
 setupClickEvents(stage, layer, sendTask);
 
 // Add keyboard event listener for colorbar toggle
-document.addEventListener('keydown', function(event) {
+document.addEventListener('keydown', function (event) {
     if (event.key.toLowerCase() === 'p') {
         toggleColorbar(layer2, width, height);
         // Trigger redraw with cached data
