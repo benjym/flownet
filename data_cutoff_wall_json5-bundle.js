@@ -15,7 +15,7 @@
   \********************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({gridSize:100,points:[{x:0,y:0.5,BC:{type:'EP',value:10}},{x:0.4,y:0.5,BC:{type:'FL'}},{x:0.4,y:0.7,BC:{type:'FL'}},{x:0.45,y:0.7,BC:{type:'FL'}},{x:0.45,y:0.6,BC:{type:'FL'}},{x:0.6,y:0.6,BC:{type:'FL'}},{x:0.6,y:0.5,BC:{type:'EP',value:5}},{x:1,y:0.5,BC:{type:'FL'}},{x:1,y:1,BC:{type:'FL'}},{x:0,y:1,BC:{type:'FL'}}],solid:[{x:0.4,y:0},{x:0.4,y:0.7},{x:0.45,y:0.7},{x:0.45,y:0.6},{x:0.6,y:0.6},{x:0.6,y:0}],contourValues:[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]});\n\n//# sourceURL=webpack://flownet/./data/cutoff_wall.json5?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({gridSize:200,points:[{x:0,y:0.5,BC:{type:'EP',value:0.4}},{x:0.4,y:0.5,BC:{type:'FL'}},{x:0.4,y:0.7,BC:{type:'FL'}},{x:0.41,y:0.7,BC:{type:'FL'}},{x:0.41,y:0.6,BC:{type:'FL'}},{x:0.6,y:0.6,BC:{type:'FL'}},{x:0.6,y:0.5,BC:{type:'EP',value:0.1}},{x:1,y:0.5,BC:{type:'FL'}},{x:1,y:1,BC:{type:'FL'}},{x:0,y:1,BC:{type:'FL'}}],solid:[{x:0.4,y:0},{x:0.4,y:0.7},{x:0.41,y:0.7},{x:0.41,y:0.6},{x:0.6,y:0.6},{x:0.6,y:0}]});\n\n//# sourceURL=webpack://flownet/./data/cutoff_wall.json5?");
 
 /***/ })
 
