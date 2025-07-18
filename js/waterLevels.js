@@ -92,7 +92,7 @@ export function drawWaterLevels(layer, sendTask) {
 
                 // Update BC value based on distance (reverse of the scale factor)
                 const newValue = waterHeight / height;
-                points[this.pointIndex].BC.value = parseFloat(newValue.toFixed(1));
+                points[this.pointIndex].BC.value = newValue; // Remove rounding for smooth values
 
                 // Update water area to match the new water line position
                 const newWaterPoints = [

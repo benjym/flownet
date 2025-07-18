@@ -12,12 +12,12 @@ export function isPointInSoil(x, y, domainPoints, solidRegion) {
     if (!isPointInDomain(x, y, domainPoints)) {
         return false; // Point is in air (outside domain)
     }
-    
+
     // Then check if point is NOT in solid region
     if (isPointInSolid(x, y, solidRegion)) {
         return false; // Point is in solid region
     }
-    
+
     return true; // Point is in soil
 }
 
@@ -162,20 +162,37 @@ export function updateStandpipes(potential, layer) {
 
     const gridSize = data.gridSize;
     standpipes.forEach((standpipe, index) => {
-        // Convert standpipe position to grid coordinates
-        const gridX = Math.round(standpipe.x * (gridSize - 1));
-        const gridY = Math.round(standpipe.y * (gridSize - 1));
+        // Convert standpipe position to continuous grid coordinates
+        const gridX = standpipe.x * (gridSize - 1);
+        const gridY = standpipe.y * (gridSize - 1);
 
-        // Get potential value at this grid point
-        if (gridX >= 0 && gridX < gridSize && gridY >= 0 && gridY < gridSize) {
-            const potentialValue = potential[gridY][gridX];
-            // The head is just the potential value - it's already in the same units as BC values
-             
-            const head = potentialValue + (standpipe.y - datum); // Adjust head based on y position
-            standpipe.head = head || 0;
-            // console.log(standpipe.y, potentialValue, head);
-            // console.log(`Standpipe ${index}: position (${standpipe.x}, ${standpipe.y}), grid (${gridX}, ${gridY}), head: ${standpipe.head}`);
-        }
+        // Get the four surrounding grid points for bilinear interpolation
+        const x1 = Math.floor(gridX);
+        const x2 = Math.min(x1 + 1, gridSize - 1);
+        const y1 = Math.floor(gridY);
+        const y2 = Math.min(y1 + 1, gridSize - 1);
+
+        // Get potential values at the four corners
+        const q11 = potential[y1] && potential[y1][x1] !== null ? potential[y1][x1] : 0;
+        const q21 = potential[y1] && potential[y1][x2] !== null ? potential[y1][x2] : 0;
+        const q12 = potential[y2] && potential[y2][x1] !== null ? potential[y2][x1] : 0;
+        const q22 = potential[y2] && potential[y2][x2] !== null ? potential[y2][x2] : 0;
+
+        // Calculate interpolation weights
+        const wx = gridX - x1;
+        const wy = gridY - y1;
+
+        // Bilinear interpolation
+        const interpolatedPotential = q11 * (1 - wx) * (1 - wy) +
+            q21 * wx * (1 - wy) +
+            q12 * (1 - wx) * wy +
+            q22 * wx * wy;
+
+        // The head is the interpolated potential value adjusted for position
+        const head = interpolatedPotential + (standpipe.y - datum);
+        standpipe.head = head || 0;
+
+        // console.log(`Standpipe ${index}: position (${standpipe.x.toFixed(3)}, ${standpipe.y.toFixed(3)}), interpolated head: ${standpipe.head.toFixed(4)}`);
     });
 
     // Redraw standpipes with updated values
