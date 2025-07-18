@@ -15,7 +15,7 @@
   \************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({gridSize:100,points:[{x:0,y:0.5,BC:{type:'EP',value:0.5}},{x:0.4,y:0.5,BC:{type:'FL'}},{x:0.4,y:0.6,BC:{type:'FL'}},{x:0.6,y:0.6,BC:{type:'FL'}},{x:0.6,y:0.5,BC:{type:'EP',value:0.1}},{x:1,y:0.5,BC:{type:'FL'}},{x:1,y:1,BC:{type:'FL'}},{x:0,y:1,BC:{type:'FL'}}],solid:[{x:0.4,y:0},{x:0.6,y:0},{x:0.6,y:0.6},{x:0.4,y:0.6}]});\n\n//# sourceURL=webpack://flownet/./data/dam.json5?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({gridSize:150,points:[{x:0,y:0.5,BC:{type:'EP',value:0.8}},{x:0.2,y:0.5,BC:{type:'FL'}},{x:0.4,y:0.25,BC:{type:'FL'}},{x:0.6,y:0.25,BC:{type:'FL'}},{x:0.8,y:0.5,BC:{type:'EP',value:0.6}},{x:1,y:0.5,BC:{type:'FL'}},{x:1,y:1,BC:{type:'FL'}},{x:0,y:1,BC:{type:'FL'}},{x:0,y:0.5,BC:{type:'FL'}}],solid:[{x:0.45,y:0.5},{x:0.55,y:0.5},{x:0.55,y:0.3},{x:0.45,y:0.3}]});\n\n//# sourceURL=webpack://flownet/./data/dam.json5?");
 
 /***/ })
 

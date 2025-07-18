@@ -15,7 +15,7 @@
   \**************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({gridSize:100,points:[{x:0,y:0.5,BC:{type:'EP',value:0.4}},{x:1,y:0.5,BC:{type:'FL'}},{x:1,y:1,BC:{type:'FL'}},{x:0,y:1,BC:{type:'FL'}}],drain:{x:0.5,y:0.75,r:0.05,BC:{type:'EP',value:0}}});\n\n//# sourceURL=webpack://flownet/./data/drain.json5?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({gridSize:100,points:[{x:0,y:0.5,BC:{type:'EP',value:0.9}},{x:1,y:0.5,BC:{type:'FL'}},{x:1,y:1,BC:{type:'FL'}},{x:0,y:1,BC:{type:'FL'}}],drain:{x:0.5,y:0.75,r:0.05,BC:{type:'EP',value:0.75}}});\n\n//# sourceURL=webpack://flownet/./data/drain.json5?");
 
 /***/ })
 
