@@ -1,11 +1,11 @@
 {
     gridSize : 100,
     points : [
-        { x: 0, y: 0.5, BC: {type:'EP', value: 10.0} },        // High potential boundary
+        { x: 0, y: 0.5, BC: {type:'EP', value: 0.5} },        // High potential boundary
         { x: 0.4, y: 0.5, BC: {type:'FL'}},                   // Flowline boundary
         { x: 0.4, y: 0.6, BC:{type:'FL'} },                   // Flowline boundary
         { x: 0.6, y: 0.6, BC:{type:'FL'} },                   // Flowline boundary
-        { x: 0.6, y: 0.5, BC:{type:'EP', value: 5.0} },        // Low potential boundary
+        { x: 0.6, y: 0.5, BC:{type:'EP', value: 0.1} },        // Low potential boundary
         { x: 1.0, y: 0.5, BC: {type:'FL'} },                  // Flowline boundary
         { x: 1.0, y: 1.0, BC:{type:'FL'} },                   // Flowline boundary
         { x: 0.0, y: 1.0, BC:{type:'FL'} },                   // Flowline boundary
@@ -15,6 +15,5 @@
             { x:0.6, y:0.0 },
             { x:0.6, y:0.6 },
             { x:0.4, y:0.6 }
-    ],
-    contourValues: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    ]
 }

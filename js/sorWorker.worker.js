@@ -55,6 +55,11 @@ self.onmessage = function (event) {
     // Initialize with average of boundary values for better convergence
     const avgPotential = (minPotential + maxPotential) / 2;
 
+    // Store potential range for relative convergence checking
+    const potentialRange = Math.max(maxPotential - minPotential, 1e-12); // Prevent division by zero
+    
+    console.log(`Potential range: ${potentialRange}, Using relative tolerance: ${tolerance}`);
+
     // Initialize the domain: mark all points
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
@@ -209,7 +214,9 @@ self.onmessage = function (event) {
                 const change = Math.abs(potential[row][col] - oldPotential);
                 maxChange = Math.max(maxChange, change);
 
-                if (change > tolerance) {
+                // Normalize change by potential range for relative convergence
+                const relativeChange = change / potentialRange;
+                if (relativeChange > tolerance) {
                     converged = false;
                 }
             }
@@ -221,7 +228,7 @@ self.onmessage = function (event) {
         iterations++;
     }
 
-    console.log(`SOR converged after ${iterations} iterations`);
+    // console.log(`SOR converged after ${iterations} iterations`);
 
     if (iterations >= maxIterations) {
         console.warn("SOR did not converge within maximum iterations");

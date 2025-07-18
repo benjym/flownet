@@ -1,9 +1,51 @@
 // Standpipe visualization and management
 import Konva from 'konva';
 import { width, height, data, config } from './config.js';
+import { datum } from './waterLevels.js';
 
 // Array to store standpipe data
 export let standpipes = [];
+
+// Function to check if a point is inside the soil region (inside domain but not in solid)
+export function isPointInSoil(x, y, domainPoints, solidRegion) {
+    // First check if point is inside the domain boundary
+    if (!isPointInDomain(x, y, domainPoints)) {
+        return false; // Point is in air (outside domain)
+    }
+    
+    // Then check if point is NOT in solid region
+    if (isPointInSolid(x, y, solidRegion)) {
+        return false; // Point is in solid region
+    }
+    
+    return true; // Point is in soil
+}
+
+// Function to check if a point is inside the domain boundary
+function isPointInDomain(x, y, domainPoints) {
+    if (!domainPoints || domainPoints.length < 3) {
+        console.log('No domain boundary defined or less than 3 points');
+        return false;
+    }
+
+    // Use ray casting algorithm to check if point is inside polygon
+    let inside = false;
+    let j = domainPoints.length - 1;
+
+    for (let i = 0; i < domainPoints.length; i++) {
+        const xi = domainPoints[i].x;
+        const yi = domainPoints[i].y;
+        const xj = domainPoints[j].x;
+        const yj = domainPoints[j].y;
+
+        if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+            inside = !inside;
+        }
+        j = i;
+    }
+
+    return inside;
+}
 
 // Function to check if a point is inside the solid region
 export function isPointInSolid(x, y, solid) {
@@ -12,8 +54,8 @@ export function isPointInSolid(x, y, solid) {
         return false;
     }
 
-    console.log('Checking point in solid:', x, y);
-    console.log('Solid points:', solid);
+    // console.log('Checking point in solid:', x, y);
+    // console.log('Solid points:', solid);
 
     // Use ray casting algorithm to check if point is inside polygon
     let inside = false;
@@ -31,12 +73,12 @@ export function isPointInSolid(x, y, solid) {
         j = i;
     }
 
-    console.log('Point inside solid:', inside);
+    // console.log('Point inside solid:', inside);
     return inside;
 }
 
 // Function to draw standpipes showing hydraulic head
-export function drawStandpipes(layer) {
+function drawStandpipes(layer) {
     // Clear existing standpipes
     layer.find('.standpipe').forEach(pipe => pipe.destroy());
     layer.find('.standpipe-label').forEach(label => label.destroy());
@@ -48,10 +90,9 @@ export function drawStandpipes(layer) {
         // Get the hydraulic head at this location from the latest calculation
         const headValue = standpipe.head || 0;
 
-        // Calculate standpipe height with reasonable scaling
-        // Use a smaller scale factor to prevent extremely tall standpipes
-        const pixelsPerUnit = 8; // Same as water levels
-        const standpipeHeight = headValue * pixelsPerUnit;
+        // Calculate standpipe height with consistent scaling to match water levels
+        // Use the same scaling as water levels: multiply by canvas height
+        const standpipeHeight = headValue * height;
         const standpipeTop = baseY - standpipeHeight;
 
         // Create standpipe tube (thin gray rectangle) - always show some tube above water
@@ -96,14 +137,6 @@ export function drawStandpipes(layer) {
         waterInTube.standpipeIndex = index;
         baseMarker.standpipeIndex = index;
 
-        // Add right-click to remove standpipe
-        baseMarker.on('contextmenu', function (e) {
-            e.evt.preventDefault();
-            standpipes.splice(this.standpipeIndex, 1);
-            drawStandpipes(layer);
-            layer.draw();
-        });
-
         // Add hover effect to show it's interactive
         baseMarker.on('mouseenter', function () {
             this.fill('gray');
@@ -124,7 +157,7 @@ export function drawStandpipes(layer) {
 }
 
 // Function to update standpipe head values from calculation results
-export function updateStandpipeHeads(potential, layer) {
+export function updateStandpipes(potential, layer) {
     if (!potential || standpipes.length === 0) return;
 
     const gridSize = data.gridSize;
@@ -135,9 +168,13 @@ export function updateStandpipeHeads(potential, layer) {
 
         // Get potential value at this grid point
         if (gridX >= 0 && gridX < gridSize && gridY >= 0 && gridY < gridSize) {
-            const potentialValue = potential[gridY * gridSize + gridX];
-            standpipe.head = potentialValue || 0;
-            console.log(`Standpipe ${index}: position (${standpipe.x}, ${standpipe.y}), grid (${gridX}, ${gridY}), head: ${standpipe.head}`);
+            const potentialValue = potential[gridY][gridX];
+            // The head is just the potential value - it's already in the same units as BC values
+             
+            const head = potentialValue + (standpipe.y - datum); // Adjust head based on y position
+            standpipe.head = head || 0;
+            // console.log(standpipe.y, potentialValue, head);
+            // console.log(`Standpipe ${index}: position (${standpipe.x}, ${standpipe.y}), grid (${gridX}, ${gridY}), head: ${standpipe.head}`);
         }
     });
 
@@ -148,4 +185,11 @@ export function updateStandpipeHeads(potential, layer) {
 // Function to add a new standpipe
 export function addStandpipe(x, y, head = 0) {
     standpipes.push({ x, y, head });
+}
+
+// Function to clear all standpipes
+export function clearAllStandpipes(layer) {
+    standpipes = [];
+    layer.find('.standpipe').forEach(pipe => pipe.destroy());
+    layer.find('.standpipe-label').forEach(label => label.destroy());
 }

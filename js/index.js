@@ -5,7 +5,7 @@ import { plotFlownetWithContours } from './plotter.js';
 // Import modular components
 import { width, height, config, updateConfig, initializeData } from './config.js';
 import { drawWaterLevels } from './waterLevels.js';
-import { drawStandpipes, updateStandpipeHeads } from './standpipes.js';
+import { updateStandpipes } from './standpipes.js';
 import { drawDomainBoundary } from './domainBoundary.js';
 import { setupClickEvents } from './eventHandlers.js';
 import { setupWorker, sendTask } from './workerManager.js';
@@ -22,10 +22,26 @@ const layer2 = new Konva.Layer();
 stage.add(layer2);
 stage.add(layer);
 
+// Cache the latest potential data to avoid recomputation
+let latestPotentialData = null;
+
+// Function to update standpipes using cached potential data
+export function updateStandpipesFromCache(layer) {
+    if (latestPotentialData) {
+        updateStandpipes(latestPotentialData, layer);
+        layer.draw();
+        return true; // Successfully updated from cache
+    }
+    return false; // No cached data available
+}
+
 // Setup worker to handle calculation results
 setupWorker((data) => {
+    // Cache the potential data for future standpipe updates
+    latestPotentialData = data.potential;
+    
     plotFlownetWithContours(data.potential, data.streamfunction, layer2, width, height);
-    updateStandpipeHeads(data.potential, layer);
+    updateStandpipes(data.potential, layer);
     layer.draw();
 });
 
@@ -44,7 +60,7 @@ function drawPolygon() {
     drawWaterLevels(layer, sendTask);
 
     // Draw standpipes
-    drawStandpipes(layer);
+    // updateStandpipes(layer);
 
     layer.draw();
     updateConfig();

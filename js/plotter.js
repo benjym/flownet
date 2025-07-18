@@ -22,8 +22,8 @@ function plotFlownetWithContours(potential, streamfunction, layer, width, height
     const numEquipotentials = 10;
     const deltaEquipotential = (maxPotential - minPotential) / (numEquipotentials + 1);
 
-    console.log(`Potential range: ${minPotential.toFixed(4)} to ${maxPotential.toFixed(4)}`);
-    console.log(`Streamfunction range: ${minStreamfunction.toFixed(4)} to ${maxStreamfunction.toFixed(4)}`);
+    // console.log(`Potential range: ${minPotential.toFixed(4)} to ${maxPotential.toFixed(4)}`);
+    // console.log(`Streamfunction range: ${minStreamfunction.toFixed(4)} to ${maxStreamfunction.toFixed(4)}`);
 
     // Clear the layer
     layer.destroyChildren();
@@ -45,8 +45,8 @@ function plotFlownetWithContours(potential, streamfunction, layer, width, height
         autoStreamlineLevels.push(minStreamfunction + i * streamStep);
     }
 
-    console.log('Equipotential levels:', autoEquipotentialLevels.map(v => v.toFixed(4)));
-    console.log('Streamline levels:', autoStreamlineLevels.map(v => v.toFixed(4)));
+    // console.log('Equipotential levels:', autoEquipotentialLevels.map(v => v.toFixed(4)));
+    // console.log('Streamline levels:', autoStreamlineLevels.map(v => v.toFixed(4)));
 
     // Create flat arrays with nulls for contouring
     const flatPotentialWithNulls = potential.flat();
@@ -112,7 +112,7 @@ function drawContours(flatData, layer, nx, ny, cellWidth, cellHeight, contourVal
 
     const contourData = contourGenerator(processedData);
 
-    console.log(`${label}: Generated ${contourData.length} contour lines`);
+    // console.log(`${label}: Generated ${contourData.length} contour lines`);
 
     // Manually process and scale each contour ring
     contourData.forEach((contour, index) => {

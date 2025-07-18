@@ -1,6 +1,8 @@
 // Water level visualization for EP boundary conditions
 import Konva from 'konva';
 import { width, height, points, config, updateConfig } from './config.js';
+import { updateStandpipes } from './standpipes.js';
+export let datum = 0;
 
 // Function to draw water levels for EP boundary conditions
 export function drawWaterLevels(layer, sendTask) {
@@ -9,9 +11,11 @@ export function drawWaterLevels(layer, sendTask) {
             const baseX = point.x * width;
             const baseY = point.y * height;
 
+            datum = point.y;
+
             // Calculate water level position (distance above base point based on BC value)
             // Use BC value directly as distance in pixels (scaled down for reasonable display)
-            const waterHeight = point.BC.value * 8; // Scale factor: 8 pixels per unit
+            const waterHeight = point.BC.value * height;
             const waterY = baseY - waterHeight;
 
             // Find the boundary line this point belongs to for proper water area rendering
@@ -66,7 +70,7 @@ export function drawWaterLevels(layer, sendTask) {
                     // Restrict movement to vertical only and prevent going below soil level
                     return {
                         x: baseX, // Keep x position fixed at the base point
-                        y: Math.max(Math.min(pos.y, baseY), baseY - 120) // Limit between soil level and max height
+                        y: Math.min(pos.y, baseY) // Limit between soil level and max height
                     };
                 }
             });
@@ -87,8 +91,7 @@ export function drawWaterLevels(layer, sendTask) {
                 const waterHeight = Math.max(0, this.baseY - newWaterY);
 
                 // Update BC value based on distance (reverse of the scale factor)
-                // Ensure minimum value of 0.1 when water height is 0 to maintain EP boundary condition
-                const newValue = waterHeight === 0 ? 0.1 : Math.max(0.1, waterHeight / 8);
+                const newValue = waterHeight / height;
                 points[this.pointIndex].BC.value = parseFloat(newValue.toFixed(1));
 
                 // Update water area to match the new water line position
@@ -106,6 +109,7 @@ export function drawWaterLevels(layer, sendTask) {
                 layer.draw();
                 updateConfig();
                 sendTask(config);
+                updateStandpipes(config.potential, layer);
             });
 
             // Add hover effects for better UX
@@ -121,26 +125,26 @@ export function drawWaterLevels(layer, sendTask) {
                 layer.draw();
             });
 
-            // Add a text label showing the BC value
-            const valueLabel = new Konva.Text({
-                x: baseX + 5,
-                y: waterY - 15,
-                text: `${point.BC.value}`,
-                fontSize: 12,
-                fill: 'darkblue',
-                name: 'water-level-label',
-            });
+            // // Add a text label showing the BC value
+            // const valueLabel = new Konva.Text({
+            //     x: baseX + 5,
+            //     y: waterY - 15,
+            //     text: `${point.BC.value}`,
+            //     fontSize: 12,
+            //     fill: 'darkblue',
+            //     name: 'water-level-label',
+            // });
 
             // Update label position when water line moves
-            waterLineGroup.on('dragmove', function () {
-                const newWaterY = this.y();
-                valueLabel.y(newWaterY - 15);
-                valueLabel.text(`${points[this.pointIndex].BC.value}`);
-            });
+            // waterLineGroup.on('dragmove', function () {
+            //     const newWaterY = this.y();
+            //     valueLabel.y(newWaterY - 15);
+            //     valueLabel.text(`${points[this.pointIndex].BC.value}`);
+            // });
 
             layer.add(waterArea);
             layer.add(waterLineGroup);
-            layer.add(valueLabel);
+            // layer.add(valueLabel);
         }
     });
 }

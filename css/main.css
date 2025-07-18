@@ -18,10 +18,19 @@ body {
 }
 #container {
   border: 1px solid #ccc;
-  margin-top: 10px;
 }
 #instructions {
-  margin-bottom: 10px;
+  position:fixed;
+  top:5pt;
+  left:5pt;
+  font-size: 8pt;
+  z-index: 99;
+  background-color: #363636;
+  padding: 5pt;
+  border-radius: 5pt;
+  color: white;
+  user-select: none;
+  opacity: 0.8;
 }
 
 #scigem_tag {
@@ -34,7 +43,8 @@ body {
   padding: 5pt;
   border-radius: 5pt;
   color: white;
-  /* opacity: 0.5; */
+  user-select: none;
+  opacity: 0.8;
 }
 a {
   color: white;
