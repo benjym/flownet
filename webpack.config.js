@@ -12,7 +12,7 @@ module.exports = [
     plugins: [
       new HtmlWebpackPlugin({
         title: 'Flow nets',
-        // favicon: "./resources/favicon512.png",
+        favicon: "./assets/favicon.png",
         template: "index.html",
         filename: "index.html",
         chunks: ['index']

@@ -42,7 +42,7 @@ async function loadDataFile(fileName = 'sheet') {
         return module.default;
     } catch (error) {
         console.warn(`Could not load ${fileName}.json5, falling back to sheet.json5`, error);
-        // Fallback to dam.json5 if the requested file doesn't exist
+        // Fallback to sheet.json5 if the requested file doesn't exist
         const fallbackModule = await import('../data/sheet.json5');
         return fallbackModule.default;
     }
@@ -50,12 +50,12 @@ async function loadDataFile(fileName = 'sheet') {
 
 // Function to initialize data from URL parameter or default
 export async function initializeData() {
-    const fileParam = getUrlParameter('file') || 'dam';
+    const fileParam = getUrlParameter('file') || 'sheet';
     return await loadData(fileParam);
 }
 
 // Function to load data with a specific file name
-export async function loadData(fileName = 'dam') {
+export async function loadData(fileName = 'sheet') {
     try {
         const rawData = await loadDataFile(fileName);
         data = JSON5.parse(JSON.stringify(rawData));
@@ -90,6 +90,6 @@ export async function reloadData(fileName = null) {
         window.history.replaceState({}, '', url);
     }
 
-    const fileParam = getUrlParameter('file') || 'dam';
+    const fileParam = getUrlParameter('file') || 'sheet';
     return await loadData(fileParam);
 }
