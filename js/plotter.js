@@ -52,7 +52,9 @@ function plotFlownetWithContours(potential, streamfunction, layer, width, height
     const flatPotentialWithNulls = potential.flat();
     const flatStreamfunctionWithNulls = streamfunction.flat();
 
-    // drawHeatmap(potential, flatPotential, layer, nx, ny, cellWidth, cellHeight);
+    if (heatmapVisible) {
+        drawHeatmap(potential, flatPotential, layer, nx, ny, cellWidth, cellHeight);
+    }
 
     drawContours(flatPotentialWithNulls, layer, nx, ny, cellWidth, cellHeight, autoEquipotentialLevels, 'red', 'Equipotentials')
 
@@ -63,39 +65,212 @@ function plotFlownetWithContours(potential, streamfunction, layer, width, height
 }
 
 function drawHeatmap(potential, flatPotential, layer, nx, ny, cellWidth, cellHeight) {
-    const minPotential = Math.min(...flatPotential);
-    const maxPotential = Math.max(...flatPotential);
-
-    // Create a colormap for potential visualization
-    // 'viridis' is excellent for scientific data - perceptually uniform and colorblind-friendly
-    const lut = new Lut('inferno', 256);
-    lut.setMin(minPotential);
-    lut.setMax(maxPotential);
-
-    // Draw heatmap
+    // Calculate hydraulic gradients and piping risk
+    const dx = 1 / (nx - 1); // Grid spacing in normalized coordinates
+    const dy = 1 / (ny - 1);
+    
+    // Critical hydraulic gradient (typical value for sandy soils)
+    const criticalGradient = 2.65 - 1.0; // i_c = (G_s - 1), assuming G_s ≈ 2.65
+    
+    // Calculate gradient magnitude at each point
+    const gradientMagnitude = Array.from({ length: ny }, () => Array(nx).fill(null));
+    
+    for (let j = 1; j < ny - 1; j++) {
+        for (let i = 1; i < nx - 1; i++) {
+            if (potential[j][i] === null) {
+                gradientMagnitude[j][i] = null;
+                continue;
+            }
+            
+            // Calculate gradients using central differences
+            let dPhi_dx = 0;
+            let dPhi_dy = 0;
+            
+            // Horizontal gradient (∂φ/∂x)
+            if (potential[j][i-1] !== null && potential[j][i+1] !== null) {
+                dPhi_dx = (potential[j][i+1] - potential[j][i-1]) / (2 * dx);
+            } else if (potential[j][i-1] !== null) {
+                dPhi_dx = (potential[j][i] - potential[j][i-1]) / dx;
+            } else if (potential[j][i+1] !== null) {
+                dPhi_dx = (potential[j][i+1] - potential[j][i]) / dx;
+            }
+            
+            // Vertical gradient (∂φ/∂y)
+            if (potential[j-1][i] !== null && potential[j+1][i] !== null) {
+                dPhi_dy = (potential[j+1][i] - potential[j-1][i]) / (2 * dy);
+            } else if (potential[j-1][i] !== null) {
+                dPhi_dy = (potential[j][i] - potential[j-1][i]) / dy;
+            } else if (potential[j+1][i] !== null) {
+                dPhi_dy = (potential[j+1][i] - potential[j][i]) / dy;
+            }
+            
+            // Gradient magnitude
+            gradientMagnitude[j][i] = Math.sqrt(dPhi_dx * dPhi_dx + dPhi_dy * dPhi_dy);
+        }
+    }
+    
+    // Handle boundary points with forward/backward differences
     for (let j = 0; j < ny; j++) {
         for (let i = 0; i < nx; i++) {
-            let color;
-
-            if (potential[j][i] === null) {
-                color = 'rgb(0, 0, 0)'; // Black for null values (outside domain)
-            } else {
-                // Get color from the colormap
-                const lutColor = lut.getColor(potential[j][i]);
-                color = `rgb(${Math.round(lutColor.r * 255)}, ${Math.round(lutColor.g * 255)}, ${Math.round(lutColor.b * 255)})`;
+            if (gradientMagnitude[j][i] === 0 && potential[j][i] !== null) {
+                let dPhi_dx = 0;
+                let dPhi_dy = 0;
+                
+                // Edge cases for gradient calculation
+                if (i === 0 && i + 1 < nx && potential[j][i+1] !== null) {
+                    dPhi_dx = (potential[j][i+1] - potential[j][i]) / dx;
+                } else if (i === nx - 1 && i - 1 >= 0 && potential[j][i-1] !== null) {
+                    dPhi_dx = (potential[j][i] - potential[j][i-1]) / dx;
+                }
+                
+                if (j === 0 && j + 1 < ny && potential[j+1][i] !== null) {
+                    dPhi_dy = (potential[j+1][i] - potential[j][i]) / dy;
+                } else if (j === ny - 1 && j - 1 >= 0 && potential[j-1][i] !== null) {
+                    dPhi_dy = (potential[j][i] - potential[j-1][i]) / dy;
+                }
+                
+                gradientMagnitude[j][i] = Math.sqrt(dPhi_dx * dPhi_dx + dPhi_dy * dPhi_dy);
             }
+        }
+    }
+    
+    // Find min/max gradients for color scaling
+    const flatGradients = gradientMagnitude.flat().filter(v => v !== null && v !== undefined);
+    const maxGradient = Math.max(...flatGradients);
+    
+    // Create colormap for piping risk visualization
+    const createPipingRiskColor = (gradient) => {
+        if (gradient === null || gradient === undefined) {
+            return { r: 0, g: 0, b: 0, a: 255 }; // Black for null values
+        }
+        
+        const safetyFactor = criticalGradient / Math.max(gradient, 1e-6);
+        
+        if (safetyFactor >= 5) {
+            // Very safe - Green
+            return { r: 0, g: 128, b: 0, a: 255 };
+        } else if (safetyFactor >= 3) {
+            // Safe - Light green to yellow
+            const t = (5 - safetyFactor) / 2; // 0 to 1
+            return { r: Math.round(t * 255), g: 255, b: 0, a: 255 };
+        } else if (safetyFactor >= 1.5) {
+            // Caution - Yellow to orange
+            const t = (3 - safetyFactor) / 1.5; // 0 to 1
+            return { r: 255, g: Math.round(255 * (1 - t * 0.5)), b: 0, a: 255 };
+        } else if (safetyFactor >= 1) {
+            // High risk - Orange to red
+            const t = (1.5 - safetyFactor) / 0.5; // 0 to 1
+            return { r: 255, g: Math.round(128 * (1 - t)), b: 0, a: 255 };
+        } else {
+            // Critical - Red to purple (gradient exceeds critical)
+            const t = Math.min((gradient / criticalGradient - 1) / 2, 1); // 0 to 1
+            return { r: Math.round(255 * (1 - t * 0.5)), g: 0, b: Math.round(t * 255), a: 255 };
+        }
+    };
 
-            const rect = new Konva.Rect({
-                x: i * cellWidth,
-                y: j * cellHeight,
-                width: cellWidth,
-                height: cellHeight,
-                fill: color,
-                // stroke: 'black',
-                // strokeWidth: 1,
-            });
+    // Create canvas for efficient pixel manipulation
+    const canvas = document.createElement('canvas');
+    const width = layer.width() || nx * cellWidth;
+    const height = layer.height() || ny * cellHeight;
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    
+    // Create ImageData
+    const imageData = ctx.createImageData(width, height);
+    const data = imageData.data;
+    
+    // Bilinear interpolation function
+    const bilinearInterpolate = (x, y, gradientMagnitude) => {
+        // Convert pixel coordinates to grid coordinates
+        const gx = (x / width) * (nx - 1);
+        const gy = (y / height) * (ny - 1);
+        
+        // Get the four surrounding grid points
+        const x1 = Math.floor(gx);
+        const x2 = Math.min(x1 + 1, nx - 1);
+        const y1 = Math.floor(gy);
+        const y2 = Math.min(y1 + 1, ny - 1);
+        
+        // Get values at the four corners
+        const q11 = gradientMagnitude[y1][x1];
+        const q21 = gradientMagnitude[y1][x2];
+        const q12 = gradientMagnitude[y2][x1];
+        const q22 = gradientMagnitude[y2][x2];
+        
+        // If any corner is null, fall back to nearest neighbor
+        if (q11 === null || q21 === null || q12 === null || q22 === null) {
+            const nearestX = Math.round(gx);
+            const nearestY = Math.round(gy);
+            if (nearestX >= 0 && nearestX < nx && nearestY >= 0 && nearestY < ny) {
+                return gradientMagnitude[nearestY][nearestX];
+            }
+            return null;
+        }
+        
+        // Calculate interpolation weights
+        const wx = gx - x1;
+        const wy = gy - y1;
+        
+        // Bilinear interpolation
+        const interpolated = q11 * (1 - wx) * (1 - wy) +
+                           q21 * wx * (1 - wy) +
+                           q12 * (1 - wx) * wy +
+                           q22 * wx * wy;
+        
+        return interpolated;
+    };
+    
+    // Fill pixel data with interpolated values
+    for (let py = 0; py < height; py++) {
+        for (let px = 0; px < width; px++) {
+            // Get interpolated gradient value at this pixel
+            const interpolatedGradient = bilinearInterpolate(px, py, gradientMagnitude);
+            const color = createPipingRiskColor(interpolatedGradient);
+            
+            const pixelIndex = (py * width + px) * 4;
+            data[pixelIndex] = color.r;     // Red
+            data[pixelIndex + 1] = color.g; // Green
+            data[pixelIndex + 2] = color.b; // Blue
+            data[pixelIndex + 3] = color.a; // Alpha
+        }
+    }
+    
+    // Put the image data on the canvas
+    ctx.putImageData(imageData, 0, 0);
+    
+    // Create Konva image from canvas
+    const image = new Konva.Image({
+        x: 0,
+        y: 0,
+        image: canvas,
+        width: width,
+        height: height,
+        name: 'piping-heatmap'
+    });
+    
+    layer.add(image);
+    
+    console.log(`Piping analysis: Max gradient = ${maxGradient.toFixed(4)}, Critical gradient = ${criticalGradient}`);
+}
 
-            layer.add(rect);
+// Global variables to track visibility
+let colorbarVisible = true;
+let heatmapVisible = true;
+
+// Function to toggle colorbar and heatmap visibility
+export function toggleColorbar(layer, width, height) {
+    // Toggle both heatmap and colorbar
+    heatmapVisible = !heatmapVisible;
+    colorbarVisible = !colorbarVisible;
+    
+    // Toggle HTML colorbar element visibility
+    const htmlColorbar = document.getElementById('piping-colorbar');
+    if (htmlColorbar) {
+        if (colorbarVisible) {
+            htmlColorbar.classList.remove('hidden');
+        } else {
+            htmlColorbar.classList.add('hidden');
         }
     }
 }

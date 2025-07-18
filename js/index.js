@@ -9,6 +9,7 @@ import { updateStandpipes } from './standpipes.js';
 import { drawDomainBoundary } from './domainBoundary.js';
 import { setupClickEvents } from './eventHandlers.js';
 import { setupWorker, sendTask } from './workerManager.js';
+import { toggleColorbar } from './plotter.js';
 
 // Create Konva stage and layers
 const stage = new Konva.Stage({
@@ -24,6 +25,18 @@ stage.add(layer);
 
 // Cache the latest potential data to avoid recomputation
 let latestPotentialData = null;
+let latestStreamfunctionData = null;
+
+// Function to redraw flownet with cached data
+export function redrawFlownet() {
+    if (latestPotentialData && latestStreamfunctionData) {
+        plotFlownetWithContours(latestPotentialData, latestStreamfunctionData, layer2, width, height);
+        updateStandpipes(latestPotentialData, layer);
+        layer.draw();
+        return true;
+    }
+    return false;
+}
 
 // Function to update standpipes using cached potential data
 export function updateStandpipesFromCache(layer) {
@@ -37,8 +50,9 @@ export function updateStandpipesFromCache(layer) {
 
 // Setup worker to handle calculation results
 setupWorker((data) => {
-    // Cache the potential data for future standpipe updates
+    // Cache both datasets for future redraws
     latestPotentialData = data.potential;
+    latestStreamfunctionData = data.streamfunction;
     
     plotFlownetWithContours(data.potential, data.streamfunction, layer2, width, height);
     updateStandpipes(data.potential, layer);
@@ -69,6 +83,15 @@ function drawPolygon() {
 
 // Setup event handlers
 setupClickEvents(stage, layer, sendTask);
+
+// Add keyboard event listener for colorbar toggle
+document.addEventListener('keydown', function(event) {
+    if (event.key.toLowerCase() === 'p') {
+        toggleColorbar(layer2, width, height);
+        // Trigger redraw with cached data
+        redrawFlownet();
+    }
+});
 
 // Initialize with async data loading
 async function initialize() {
