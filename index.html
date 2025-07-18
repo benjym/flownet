@@ -26,7 +26,16 @@
   <span id="scigem_tag">
     Built with <a href="https://konvajs.org/">Konva.js</a> by <a href="http://benjymarks.com/">Benjy Marks</a>
   </span>
-  <span id="instructions">Left click to add standpipes. Right click to reset.</span>
+  <span id="instructions">Left click to add standpipes. Double click to reset. Press 'P' to toggle piping risk visualization.</span>
+  <div id="piping-colorbar" class="info-panel">
+    <div class="colorbar-title">Piping Risk (Safety Factor)</div>
+    <div class="colorbar-gradient"></div>
+    <div class="colorbar-labels">
+      <span class="label-left">Safe (>5)</span>
+      <span class="label-middle">Marginal (3)</span>
+      <span class="label-right">Critical (<1)</span>
+    </div>
+  </div>
   <div id="container"></div>
 </body>
 
