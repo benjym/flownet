@@ -242,8 +242,8 @@ function drawHeatmap(potential, flatPotential, layer, nx, ny, cellWidth, cellHei
 
     console.log(`Piping analysis: Max upward gradient = ${maxGradient.toFixed(4)}, Critical gradient = ${criticalGradient.toFixed(2)}`);
 }// Global variables to track visibility
-let colorbarVisible = true;
-let heatmapVisible = true;
+let colorbarVisible = false;
+let heatmapVisible = false;
 
 // Function to toggle colorbar and heatmap visibility
 export function toggleColorbar(layer, width, height) {
