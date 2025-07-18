@@ -30,15 +30,40 @@ export function drawDomainBoundary(layer) {
 
     if (solid_line) {
         solid_line.destroy();
+        solid_line = null;
     }
 
     if (solid) {
-        if (solid.length > 1) {
-            solid_line = new Konva.Line({
-                points: solid.flatMap(p => [p.x * width, p.y * height]),
-                fill: 'gray',
-                closed: true,
-            });
+        // Handle multiple solid regions (array of arrays) or single solid region (array of points)
+        if (Array.isArray(solid) && solid.length > 0) {
+            solid_line = new Konva.Group();
+
+            // Check if solid is an array of arrays (multiple regions) or array of points (single region)
+            const isMultipleRegions = Array.isArray(solid[0]);
+
+            if (isMultipleRegions) {
+                // Multiple solid regions
+                solid.forEach(solidRegion => {
+                    if (solidRegion && solidRegion.length > 2) {
+                        const line = new Konva.Line({
+                            points: solidRegion.flatMap(p => [p.x * width, p.y * height]),
+                            fill: 'gray',
+                            closed: true,
+                        });
+                        solid_line.add(line);
+                    }
+                });
+            } else {
+                // Single solid region (backward compatibility)
+                if (solid.length > 2) {
+                    const line = new Konva.Line({
+                        points: solid.flatMap(p => [p.x * width, p.y * height]),
+                        fill: 'gray',
+                        closed: true,
+                    });
+                    solid_line.add(line);
+                }
+            }
 
             layer.add(solid_line);
         }

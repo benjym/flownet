@@ -1,7 +1,6 @@
 // Standpipe visualization and management
 import Konva from 'konva';
 import { width, height, data, config } from './config.js';
-import { datum } from './waterLevels.js';
 
 // Array to store standpipe data
 export let standpipes = [];
@@ -49,23 +48,47 @@ function isPointInDomain(x, y, domainPoints) {
 
 // Function to check if a point is inside the solid region
 export function isPointInSolid(x, y, solid) {
-    if (!solid || solid.length < 3) {
-        console.log('No solid region defined or less than 3 points');
+    if (!solid || solid.length === 0) {
+        console.log('No solid region defined or empty solid array');
         return false;
     }
 
     // console.log('Checking point in solid:', x, y);
     // console.log('Solid points:', solid);
 
-    // Use ray casting algorithm to check if point is inside polygon
-    let inside = false;
-    let j = solid.length - 1;
+    // Check if solid is an array of arrays (multiple regions) or array of points (single region)
+    const isMultipleRegions = Array.isArray(solid[0]);
 
-    for (let i = 0; i < solid.length; i++) {
-        const xi = solid[i].x;
-        const yi = solid[i].y;
-        const xj = solid[j].x;
-        const yj = solid[j].y;
+    if (isMultipleRegions) {
+        // Multiple solid regions - check if point is inside any of them
+        for (const solidRegion of solid) {
+            if (solidRegion && solidRegion.length >= 3) {
+                if (isPointInPolygon(x, y, solidRegion)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    } else {
+        // Single solid region (backward compatibility)
+        if (solid.length < 3) {
+            console.log('Single solid region has less than 3 points');
+            return false;
+        }
+        return isPointInPolygon(x, y, solid);
+    }
+}
+
+// Helper function to check if a point is inside a polygon using ray casting
+function isPointInPolygon(x, y, polygon) {
+    let inside = false;
+    let j = polygon.length - 1;
+
+    for (let i = 0; i < polygon.length; i++) {
+        const xi = polygon[i].x;
+        const yi = polygon[i].y;
+        const xj = polygon[j].x;
+        const yj = polygon[j].y;
 
         if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
             inside = !inside;
@@ -73,7 +96,6 @@ export function isPointInSolid(x, y, solid) {
         j = i;
     }
 
-    // console.log('Point inside solid:', inside);
     return inside;
 }
 
@@ -90,15 +112,15 @@ function drawStandpipes(layer) {
         // Get the hydraulic head at this location from the latest calculation
         const headValue = standpipe.head || 0;
 
-        // Calculate standpipe height with consistent scaling to match water levels
-        // Use the same scaling as water levels: multiply by canvas height
-        const standpipeHeight = headValue * height;
-        const standpipeTop = baseY - standpipeHeight;
+        // Calculate standpipe height using absolute coordinates
+        // Convert absolute head value to screen coordinates: (1 - headValue) * height
+        const standpipeTop = (1 - headValue) * height;
+        const standpipeHeight = Math.max(0, baseY - standpipeTop);
 
         // Create standpipe tube (thin gray rectangle) - always show some tube above water
         const tubeExtension = 20; // Extra tube height above water level
         const tubeHeight = standpipeHeight + tubeExtension;
-        const tubeTop = baseY - tubeHeight;
+        const tubeTop = standpipeTop - tubeExtension;
 
         const tube = new Konva.Rect({
             x: baseX - 2,
@@ -188,8 +210,9 @@ export function updateStandpipes(potential, layer) {
             q12 * (1 - wx) * wy +
             q22 * wx * wy;
 
-        // The head is the interpolated potential value adjusted for position
-        const head = interpolatedPotential + (standpipe.y - datum);
+        // The head is now the interpolated potential value as absolute height
+        // No need to adjust for datum since we're using absolute coordinates
+        const head = interpolatedPotential;
         standpipe.head = head || 0;
 
         // console.log(`Standpipe ${index}: position (${standpipe.x.toFixed(3)}, ${standpipe.y.toFixed(3)}), interpolated head: ${standpipe.head.toFixed(4)}`);

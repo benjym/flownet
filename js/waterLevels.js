@@ -11,12 +11,10 @@ export function drawWaterLevels(layer, sendTask) {
             const baseX = point.x * width;
             const baseY = point.y * height;
 
-            datum = point.y;
+            // Calculate water level position using absolute height (BC value is global Y coordinate)
+            const waterY = (1 - point.BC.value) * height; // Convert from normalized to screen coordinates
 
-            // Calculate water level position (distance above base point based on BC value)
-            // Use BC value directly as distance in pixels (scaled down for reasonable display)
-            const waterHeight = point.BC.value * height;
-            const waterY = baseY - waterHeight;
+            datum = point.BC.value; // Store absolute water level as datum
 
             // Find the boundary line this point belongs to for proper water area rendering
             const nextPointIndex = (index + 1) % points.length;
@@ -32,7 +30,7 @@ export function drawWaterLevels(layer, sendTask) {
                 (nextPoint.x - point.x) * width
             );
 
-            // Create a polygon for the water area
+            // Create a polygon for the water area (from boundary to water level)
             const waterPoints = [
                 baseX, baseY,
                 baseX + Math.cos(angle) * lineLength, baseY + Math.sin(angle) * lineLength,
@@ -67,10 +65,10 @@ export function drawWaterLevels(layer, sendTask) {
                 name: 'water-level-line',
                 draggable: true,
                 dragBoundFunc: function (pos) {
-                    // Restrict movement to vertical only and prevent going below soil level
+                    // Restrict movement to vertical only and allow full range in domain
                     return {
                         x: baseX, // Keep x position fixed at the base point
-                        y: Math.min(pos.y, baseY) // Limit between soil level and max height
+                        y: Math.max(0, Math.min(pos.y, height)) // Limit to domain bounds
                     };
                 }
             });
@@ -88,11 +86,10 @@ export function drawWaterLevels(layer, sendTask) {
             waterLineGroup.on('dragmove', function () {
                 // Get the current position of the group
                 const newWaterY = this.y();
-                const waterHeight = Math.max(0, this.baseY - newWaterY);
 
-                // Update BC value based on distance (reverse of the scale factor)
-                const newValue = waterHeight / height;
-                points[this.pointIndex].BC.value = newValue; // Remove rounding for smooth values
+                // Convert screen coordinate to normalized global coordinate (absolute height)
+                const newValue = 1 - (newWaterY / height);
+                points[this.pointIndex].BC.value = newValue;
 
                 // Update water area to match the new water line position
                 const newWaterPoints = [

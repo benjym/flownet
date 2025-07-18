@@ -1,9 +1,9 @@
 {
     gridSize: 50,
     points : [
-        {x:0, y: 0, BC: {type:'EP', value: 0.5}},    // High head at bottom-left
+        {x:0, y: 0, BC: {type:'EP', value: 0.5}},    // High head at bottom-left (absolute height)
         {x: 1, y: 0, BC: {type:'FL'}},              // Bottom boundary (flowline)
-        {x: 1, y: 1, BC: {type:'EP', value: 0.1}},   // Low head at top-right
+        {x: 1, y: 1, BC: {type:'EP', value: 1.1}},   // Low head at top-right (absolute height)
         {x:0, y: 1, BC: {type:'FL'}}                // Left boundary (flowline)
     ]
 }

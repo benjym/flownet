@@ -36,14 +36,14 @@ function getUrlParameter(name) {
 }
 
 // Function to dynamically load a JSON5 file
-async function loadDataFile(fileName = 'dam') {
+async function loadDataFile(fileName = 'sheet') {
     try {
         const module = await import(`../data/${fileName}.json5`);
         return module.default;
     } catch (error) {
-        console.warn(`Could not load ${fileName}.json5, falling back to dam.json5`, error);
+        console.warn(`Could not load ${fileName}.json5, falling back to sheet.json5`, error);
         // Fallback to dam.json5 if the requested file doesn't exist
-        const fallbackModule = await import('../data/dam.json5');
+        const fallbackModule = await import('../data/sheet.json5');
         return fallbackModule.default;
     }
 }

@@ -1,19 +1,35 @@
 {
-    gridSize : 100,
-    points : [
-        { x: 0, y: 0.5, BC: {type:'EP', value: 0.5} },        // High potential boundary
-        { x: 0.4, y: 0.5, BC: {type:'FL'}},                   // Flowline boundary
-        { x: 0.4, y: 0.6, BC:{type:'FL'} },                   // Flowline boundary
-        { x: 0.6, y: 0.6, BC:{type:'FL'} },                   // Flowline boundary
-        { x: 0.6, y: 0.5, BC:{type:'EP', value: 0.1} },        // Low potential boundary
-        { x: 1.0, y: 0.5, BC: {type:'FL'} },                  // Flowline boundary
-        { x: 1.0, y: 1.0, BC:{type:'FL'} },                   // Flowline boundary
-        { x: 0.0, y: 1.0, BC:{type:'FL'} },                   // Flowline boundary
+    gridSize: 150,
+    points: [
+        // Start from upstream reservoir (going clockwise around the domain)
+        { x: 0.0, y: 0.5, BC: {type:'EP', value: 0.8} },      // Reservoir water level (absolute height)
+        
+        // Upstream slope of dam (above water portion)
+        { x: 0.2, y: 0.5, BC: {type:'FL'} },                 // Upstream slope point 1
+        { x: 0.4, y: 0.25, BC: {type:'FL'} },                 // Upstream slope point 2
+        
+        // Dam crest
+        { x: 0.6, y: 0.25, BC: {type:'FL'} },                 // Left side of crest
+        
+        // Downstream slope
+        { x: 0.8, y: 0.5, BC: {type:'EP', value: 0.6} },                   // Downstream slope point 1
+        // Downstream boundary (tailwater)
+        { x: 1.0, y: 0.5, BC: {type:'FL'} },      // Tailwater level (absolute height)
+        
+        // Right boundary
+        { x: 1.0, y: 1.0, BC: {type:'FL'} },                   // Right boundary (flowline)
+        
+        // Foundation boundary
+        { x: 0.0, y: 1.0, BC: {type:'FL'} },                   // Foundation (flowline)
+        
+        // Left boundary back to reservoir
+        { x: 0.0, y: 0.5, BC: {type:'FL'} },                   // Left boundary below reservoir
     ],
-    solid : [
-            { x:0.4, y:0.0 },
-            { x:0.6, y:0.0 },
-            { x:0.6, y:0.6 },
-            { x:0.4, y:0.6 }
+    solid: [
+        // Impermeable core/cutoff wall in the center of the dam
+        { x: 0.45, y: 0.5 },    // Bottom left of core (at foundation)
+        { x: 0.55, y: 0.5 },    // Bottom right of core (at foundation)
+        { x: 0.55, y: 0.3 },    // Top right of core (near crest)
+        { x: 0.45, y: 0.3 },    // Top left of core (near crest)
     ]
 }

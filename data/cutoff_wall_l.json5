@@ -1,23 +1,23 @@
 {
     gridSize : 200,
     points : [
-        { x: 0, y: 0.5, BC: {type:'EP', value: 0.4} },        // High potential boundary
+        { x: 0, y: 0.5, BC: {type:'EP', value: 0.9} },        // High potential boundary (absolute height)
         { x: 0.4, y: 0.5, BC: {type:'FL'}},                   // Flowline boundary
-        { x: 0.4, y: 0.6, BC: {type:'FL'}},                   // Flowline boundary
-        { x: 0.59, y: 0.6, BC:{type:'FL'} },                   // Flowline boundary
-        { x: 0.59, y: 0.7, BC:{type:'FL'} },                   // Flowline boundary
-        { x: 0.6, y: 0.7, BC:{type:'FL'} },                   // Flowline boundary
-        { x: 0.6, y: 0.5, BC:{type:'EP', value: 0.1} },        // Low potential boundary
+        { x: 0.4, y: 0.7, BC:{type:'FL'} },                   // Flowline boundary
+        { x: 0.41, y: 0.7, BC:{type:'FL'} },                   // Flowline boundary
+        { x: 0.41, y: 0.6, BC:{type:'FL'} },                   // Flowline boundary
+        { x: 0.6, y: 0.6, BC:{type:'FL'} },                   // Flowline boundary
+        { x: 0.6, y: 0.5, BC:{type:'EP', value: 0.6} },        // Low potential boundary (absolute height)
         { x: 1.0, y: 0.5, BC: {type:'FL'} },                  // Flowline boundary
         { x: 1.0, y: 1.0, BC:{type:'FL'} },                   // Flowline boundary
         { x: 0.0, y: 1.0, BC:{type:'FL'} },                   // Flowline boundary
     ],
     solid : [
             { x:0.4, y:0.0 },
-            { x:0.4, y:0.6 },
-            { x:0.59, y:0.6 },
-            { x:0.59, y:0.7 },
-            { x:0.6, y:0.7 },
+            { x:0.4, y:0.7 },
+            { x:0.41, y:0.7 },
+            { x:0.41, y:0.6 },
+            { x:0.6, y:0.6 },
             { x:0.6, y:0.0 },
             
     ]
