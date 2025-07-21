@@ -10,11 +10,13 @@ export function drawDomainBoundary(layer) {
     if (polygon) {
         polygon.destroy();
     }
-
     if (points.length > 1) {
         polygon = new Konva.Group();
         for (let i = 0; i < points.length; i++) {
             const p1 = points[i];
+            if (p1.BC.type === 'INFINITY') {
+                continue; // Skip INFINITY boundaries
+            }
             let colour = p1.BC.type === 'FL' ? 'blue' : 'red';
             const p2 = points[(i + 1) % points.length];
             const line = new Konva.Line({

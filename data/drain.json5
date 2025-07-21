@@ -1,15 +1,15 @@
 {
-    gridSize : 100,
+    gridSize : 150,
     points : [
-        { x: 0, y: 0.5, BC: {type:'EP', value: 0.9} },        // High potential boundary (absolute height)
-        { x: 1.0, y: 0.5, BC:{type:'FL'} },
-        { x: 1.0, y: 1.0, BC:{type:'FL'} },                   // Flowline boundary
-        { x: 0.0, y: 1.0, BC:{type:'FL'} },                   // Flowline boundary
+        { x: 0.0, y: 0.5, BC: {type:'EP', value: 0.9} },
+        { x: 1.0, y: 0.5, BC:{type:'INFINITY'} },
+        { x: 1.0, y: 1.0, BC:{type:'FL'} },
+        { x: 0.0, y: 1.0, BC:{type:'INFINITY'} },
     ],
     drain : {
         x: 0.5,
         y: 0.75,
         r: 0.05,
-        BC: {type: 'EP', value: 0.75}  // Absolute height at drain level
+        BC: {type: 'EP', value: 0.25},  // Absolute height at drain level
     }
 }

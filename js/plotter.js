@@ -17,14 +17,17 @@ function plotFlownetWithContours(potential, streamfunction, layer, width, height
     const minPotential = Math.min(...flatPotential);
     const maxPotential = Math.max(...flatPotential);
     const minStreamfunction = Math.min(...flatStreamfunction);
+    // const minStreamfunction = 0;
     const maxStreamfunction = Math.max(...flatStreamfunction);
+
 
     const numEquipotentials = 10;
     const deltaEquipotential = (maxPotential - minPotential) / (numEquipotentials + 1);
 
     // console.log(`Potential range: ${minPotential.toFixed(4)} to ${maxPotential.toFixed(4)}`);
     // console.log(`Streamfunction range: ${minStreamfunction.toFixed(4)} to ${maxStreamfunction.toFixed(4)}`);
-
+    // console.log("Potential: ", potential);
+    // console.log(streamfunction);
     // Clear the layer
     layer.destroyChildren();
 
@@ -33,20 +36,27 @@ function plotFlownetWithContours(potential, streamfunction, layer, width, height
     for (let i = 1; i <= numEquipotentials; i++) {
         autoEquipotentialLevels.push(minPotential + i * deltaEquipotential);
     }
+    console.log(`Min potential: ${minPotential.toFixed(4)}, Max potential: ${maxPotential.toFixed(4)}`);
+    console.log('Auto-generated equipotential levels:', autoEquipotentialLevels.map(v => v.toFixed(4)));
 
     // Auto-generate streamline contour levels to form squares
     // Set the number of streamlines so that the spacing is the same as equipotential levels
 
-
     const streamStep = deltaEquipotential;
     const numStreamlines = Math.ceil((maxStreamfunction - minStreamfunction) / streamStep);
-    const autoStreamlineLevels = [];
-    for (let i = 1; i <= numStreamlines; i++) {
-        autoStreamlineLevels.push(minStreamfunction + i * streamStep);
+    let autoStreamlineLevels = [];
+    for (let i = 1; i < numStreamlines; i++) {
+        // autoStreamlineLevels.push(minStreamfunction + (i-1) * streamStep + streamStep / 2); // Center the streamlines between equipotential levels
+        autoStreamlineLevels.push(maxStreamfunction - i * streamStep);
     }
 
-    // console.log('Equipotential levels:', autoEquipotentialLevels.map(v => v.toFixed(4)));
-    // console.log('Streamline levels:', autoStreamlineLevels.map(v => v.toFixed(4)));
+    autoStreamlineLevels = autoStreamlineLevels.reverse(); // Reverse to match the direction of potential
+
+    console.log(potential)
+    console.log(streamfunction)
+
+    console.log(`Min streamfunction: ${minStreamfunction.toFixed(4)}, Max streamfunction: ${maxStreamfunction.toFixed(4)}`);
+    console.log('Auto-generated streamline levels:', autoStreamlineLevels.map(v => v.toFixed(4)));
 
     // Create flat arrays with nulls for contouring
     const flatPotentialWithNulls = potential.flat();
@@ -262,9 +272,19 @@ export function toggleColorbar(layer, width, height) {
     }
 }
 
+// Enable contour labels if URL param 'debug' is present
+function isDebugEnabled() {
+    if (typeof window !== 'undefined' && window.location && window.location.search) {
+        return new URLSearchParams(window.location.search).has('debug');
+    }
+    return false;
+}
+drawContours.showLabels = isDebugEnabled();
+
 function drawContours(flatData, layer, nx, ny, cellWidth, cellHeight, contourValues, colour, label) {
     // Replace null values with NaN for d3-contour (it handles NaN better than null)
-    const processedData = flatData.map(v => v === null ? NaN : v);
+    // const processedData = flatData.map(v => v === null ? NaN : v);
+    const processedData = flatData;
 
     // Generate contours using d3-contour
     const contourGenerator = contours()
@@ -295,6 +315,33 @@ function drawContours(flatData, layer, nx, ny, cellWidth, cellHeight, contourVal
                 });
 
                 layer.add(line);
+
+                // Optionally add a label for debugging
+                if (drawContours.showLabels) {
+                    if (points.length >= 4) {
+                        const segIdx = 3;
+                        let labelX = points[segIdx * 2];
+                        let labelY = points[segIdx * 2 + 1];
+                        const valueLabel = `${contour.value.toFixed(2)}`;
+                        // console.log(`${label} contour ${index + 1}: ${valueLabel} at (${labelX.toFixed(2)}, ${labelY.toFixed(2)})`);
+                        // Create text to measure its size
+                        const tempText = new Konva.Text({
+                            text: valueLabel,
+                            fontSize: 18,
+                        });
+                        // Offset by half width/height
+                        labelX -= tempText.width() / 2;
+                        labelY -= tempText.height() / 2;
+                        const text = new Konva.Text({
+                            x: labelX,
+                            y: labelY,
+                            text: valueLabel,
+                            fontSize: 18,
+                            stroke: colour,
+                        });
+                        layer.add(text);
+                    }
+                }
             });
         });
     });
